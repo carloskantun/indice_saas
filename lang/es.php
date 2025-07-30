@@ -1,0 +1,21 @@
+<?php
+return [
+    'dashboard' => 'Panel principal',
+    'login' => 'Iniciar sesión',
+    'logout' => 'Cerrar sesión',
+    'register' => 'Registrarse',
+    'create_company' => 'Crear empresa',
+    'join_company' => 'Unirse con código',
+    'business_unit' => 'Unidad de negocio',
+    'business' => 'Negocio',
+    'kpis' => 'Indicadores Clave',
+    'expenses' => 'Gastos',
+    'modules' => 'Módulos',
+    'users' => 'Usuarios',
+    'superadmin' => 'Superadministrador',
+    'admin' => 'Administrador',
+    'moderator' => 'Moderador',
+    'user' => 'Usuario',
+    'support' => 'Soporte',
+    'root' => 'Root',
+];
