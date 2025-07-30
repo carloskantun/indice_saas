@@ -51,7 +51,6 @@ Estructura flexible para startups, empresas o trabajadores con múltiples negoci
    - Sus empresas disponibles
    - Roles que tiene en cada empresa
 
-```php
 $_SESSION['user_id']
 $_SESSION['company_id']
 $_SESSION['unit_id']
