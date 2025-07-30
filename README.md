@@ -41,6 +41,7 @@ Estructura flexible para startups, empresas o trabajadores con múltiples negoci
 
 ---
 
+
 ## 🚀 FLUJO DE USUARIO NUEVO
 
 1. Usuario accede a `register.php`.
@@ -51,11 +52,14 @@ Estructura flexible para startups, empresas o trabajadores con múltiples negoci
    - Sus empresas disponibles
    - Roles que tiene en cada empresa
 
+```php
 $_SESSION['user_id']
 $_SESSION['company_id']
 $_SESSION['unit_id']
 $_SESSION['business_id']
 $_SESSION['current_role']
+
+
 📦 ESTRUCTURA DE MÓDULOS
 Todos los módulos funcionales viven en:
 /app/modules/[modulo]/
