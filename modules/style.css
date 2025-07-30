@@ -1,0 +1,80 @@
+/* Estilos para el módulo de módulos - heredan de companies */
+@import url('../companies/style.css');
+
+/* Estilos específicos para módulos */
+.module-card {
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+}
+
+.module-card:hover:not(.module-disabled) {
+    transform: translateY(-5px);
+    box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.module-card.module-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.module-card.module-disabled:hover {
+    transform: none !important;
+}
+
+.module-icon {
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* Animación para iconos */
+.module-card:hover:not(.module-disabled) .module-icon {
+    transform: scale(1.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+/* Gradientes para botones de módulos */
+.btn-success {
+    background: linear-gradient(45deg, #198754, #20c997);
+    border: none;
+}
+
+.btn-warning {
+    background: linear-gradient(45deg, #ffc107, #fd7e14);
+    border: none;
+}
+
+.btn-info {
+    background: linear-gradient(45deg, #0dcaf0, #6f42c1);
+    border: none;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #0d6efd, #6610f2);
+    border: none;
+}
+
+.btn-danger {
+    background: linear-gradient(45deg, #dc3545, #fd7e14);
+    border: none;
+}
+
+.btn-secondary {
+    background: linear-gradient(45deg, #6c757d, #adb5bd);
+    border: none;
+}
+
+/* Efectos hover para botones */
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Card de información adicional */
+.card-title i {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}

@@ -1,0 +1,22 @@
+/* Estilos para el módulo de unidades - heredan de companies */
+@import url('../companies/style.css');
+
+/* Estilos específicos para unidades */
+.unit-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.unit-card:hover {
+    transform: translateY(-2px);
+}
+
+.breadcrumb {
+    background: none;
+    padding: 0;
+    margin-bottom: 0.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: var(--bs-secondary);
+}
