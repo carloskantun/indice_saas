@@ -1,128 +1,132 @@
 ## 📘 README.md — Indice SaaS Modular Platform
-
+Sistema modular y escalable en PHP + MySQL que permite a múltiples empresas gestionar sus negocios, unidades, personal y servicios desde un solo ecosistema.
 ### 🎯 Objetivo
-Indice SaaS es una plataforma modular para empresas, diseñada para gestionar múltiples negocios y unidades operativas bajo un solo ecosistema. Este sistema permite escalar desde un solo usuario hasta una red de empresas y sucursales con roles jerárquicos y módulos dinámicos.
+Primer Objetivo: Transformar el sistema `Indice` (actualmente usado por elcorazondelcaribe.com) en una plataforma SaaS multicliente. La solución permitirá que un mismo usuario administre múltiples empresas, unidades o negocios, con jerarquías, roles y módulos personalizados.
 
----
+Despues dejar: Indice SaaS es una plataforma modular para empresas, diseñada para gestionar múltiples negocios y unidades operativas bajo un solo ecosistema. Este sistema permite escalar desde un solo usuario hasta una red de empresas y sucursales con roles jerárquicos y módulos dinámicos.
+
 
 ## ✅ ESTRUCTURA DE ROLES Y JERARQUÍA
 
 | Rol         | Descripción                                                       |
-|--------------|-------------------------------------------------------------------|
-| `root`       | Acceso total al sistema. Administra cuentas y empresas SaaS.     |
-| `support`    | Soporte técnico con acceso parcial sin modificar cuentas SaaS.   |
-| `superadmin` | Crea y administra empresas y unidades. Define permisos.          |
-| `admin`      | Administra unidades o empresas específicas.                      |
-| `moderator`  | Gerente de unidades o negocios. Supervisa operaciones.           |
-| `user`       | Usuario operativo. Accede a formularios, KPIs y tareas asignadas.|
+|-------------|--------------------------------------------------------------------|
+| `root`       | Acceso total al sistema SaaS. Administra empresas, usuarios y planes. |
+| `support`    | Soporte técnico limitado. No puede modificar cuentas ni empresas. |
+| `superadmin` | Propietario de empresas. Controla unidades, usuarios y módulos.  |
+| `admin`      | Administra una unidad o negocio dentro de una empresa.           |
+| `moderator`  | Gerente de operación local. Supervisa tareas y registros.        |
+| `user`       | Usuario operativo. Accede según permisos del sistema.            |
 
-Cada usuario puede tener distintos roles en distintas empresas o unidades.
+🔄 Un mismo usuario puede tener múltiples roles en distintas empresas.
 
 ---
 
-## 🧱 ESCALAMIENTO: ENTIDADES DEL SISTEMA
+## 🧱 ESCALAMIENTO: JERARQUÍA DE ENTIDADES
 
-```text
-Usuario → Empresas → Unidades → Negocios (opcional)
-```
+usuario → empresas → unidades → negocios (opcional)
 
-### 📂 Carpetas base
+Estructura flexible para startups, empresas o trabajadores con múltiples negocios.
+
+📂 Carpetas base:
 
 | Carpeta         | Descripción                                  |
-|-----------------|----------------------------------------------|
-| `/companies/`    | Gestión de empresas del sistema SaaS         |
-| `/units/`        | Unidades de negocio por empresa              |
-| `/businesses/`   | Negocios (sucursales físicas o virtuales)    |
-| `/modules/`      | Módulos funcionales del sistema              |
-| `/auth/`         | Login, registro, verificación                |
-
+|------------------|----------------------------------------------|
+| `/companies/`     | Empresas creadas por superadmins            |
+| `/units/`         | Unidades por empresa (regiones, áreas)      |
+| `/businesses/`    | Negocios o sucursales físicas o digitales   |
+| `/modules/`       | Módulos de gestión operativa                |
+| `/auth/`          | Registro, login, invitaciones               |
+| `/panel_admin/`   | Dashboard para cada empresa                 |
+| `/panel_root/`    | Panel maestro del sistema SaaS              |
 
 ---
 
-## 🚀 FLUJO DE REGISTRO DE USUARIO
+## 🚀 FLUJO DE USUARIO NUEVO
 
-1. Usuario se registra (sin pago obligatorio).
-2. Opción: "Crear empresa ahora" o "Unirse más tarde".
-3. Accede a dashboard según su contexto:
-   - Si no pertenece a nada: se invita a crear o unirse.
-   - Si fue invitado: ve listado de empresas disponibles.
+1. Usuario accede a `register.php`.
+2. Decide:
+   - Crear una empresa (gratis)
+   - Unirse con código
+3. El dashboard detecta contexto y muestra:
+   - Sus empresas disponibles
+   - Roles que tiene en cada empresa
 
 ```php
-// Variables de sesión
 $_SESSION['user_id']
 $_SESSION['company_id']
 $_SESSION['unit_id']
 $_SESSION['business_id']
 $_SESSION['current_role']
-```
-
----
-
-## 📦 ESTRUCTURA DE MÓDULOS
-
-Cada módulo debe vivir en `/app/modules/[modulo]/` con esta estructura:
-
-```text
+📦 ESTRUCTURA DE MÓDULOS
+Todos los módulos funcionales viven en:
 /app/modules/[modulo]/
 ├── index.php              # Vista principal
-├── controller.php         # Backend de acciones
-├── js/[modulo].js         # Funciones JS y AJAX
+├── controller.php         # Backend del módulo
+├── js/[modulo].js         # Scripts JS y AJAX
 ├── modal_[funcion].php    # Modales reutilizables
-├── kpis.php               # KPIs del módulo
-```
+├── kpis.php               # Indicadores clave
+├── style.css              # Estilos locales
+🔁 Se utilizará como plantilla funcional el módulo gastos de indice-produccion.
 
----
+Incluye:
 
-## 🔐 SISTEMA DE PERMISOS
+KPIs dinámicos (Chart.js)
 
-- Los permisos están definidos por módulo y acción:
+Sumatorias con checkboxes
 
-```php
+Filtros rápidos
+
+Carrusel de fotos
+
+Columnas ordenables/ocultables
+
+Botones: editar, duplicar (Agregar), eliminar, ver PDF, etc.
+
+🔐 SISTEMA DE PERMISOS
+Cada acción del sistema valida los permisos según el rol actual y empresa activa.
+
 if (!hasPermission('gastos.view')) {
     exit('Access denied');
 }
-```
+📍 Los permisos están centralizados en includes/permisos.php
 
----
+🌍 INTERNACIONALIZACIÓN (i18n)
+Sistema multilenguaje desde el inicio. Carpeta /lang/:
 
-## 🌍 INTERNACIONALIZACIÓN (i18n)
+Español (es.php) como base.
 
-- Carpeta `/lang/`
-- Idioma principal: español (`es/`)
-- Variables comunes: botones, etiquetas, acciones
-- Soporte futuro para múltiples idiomas (`en/`, `pt/`, etc.)
+Las variables y estructuras estarán en inglés.
 
 Ejemplo:
-```php
 $lang['login'] = 'Iniciar sesión';
 $lang['logout'] = 'Cerrar sesión';
-```
 
----
+📁 uploads/
+Ruta para almacenar archivos subidos (PDFs, imágenes, evidencias):
+/uploads/[modulo]/[YYYY]/[MM]/archivo.ext
+🔧 COMPONENTES Y REUTILIZABLES
+Carpeta	Uso
+/includes/	Controladores globales
+/utils/	Funciones comunes (auth, slugify, etc.)
+/components/	Formularios, tablas, modales
 
-## 🔧 COMPONENTES Y REUTILIZABLES
+🧪 ESTADO ACTUAL DEL PROYECTO
+🧱 Base visual funcional desde indice-produccion
 
-| Carpeta           | Uso                           |
-|-------------------|-------------------------------|
-| `/includes/`       | Archivos globales (`auth.php`) |
-| `/components/`     | Formularios, validadores       |
-| `/utils/`          | Funciones auxiliares           |
+✅ Primer módulo migrado: gastos
 
----
+🧪 Estructura modular activa en /app/modules/
 
-## 📁 uploads/
+🌍 Preparado para i18n
 
-Estructura para archivos subidos:
+⚙️ Codex y Copilot integrados para desarrollo continuo
 
-```
-uploads/[modulo]/[año]/[mes]/archivo.ext
-```
+📚 Documentación adicional
+README_DATABASE.md → estructura SQL completa
 
----
+AGENTS.md → listado de módulos, rutas y permisos
 
-## 🧪 Estado actual
-- Base funcional de módulos integrada
-- Plantilla visual tomada del módulo `gastos`
-- Estructura escalable activa para Codex y Copilot
-- Preparado para bifurcación SaaS con multitenencia
+lang/es.php → diccionario inicial
+
+indice-produccion/ → carpeta base funcional
 
