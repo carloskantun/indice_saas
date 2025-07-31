@@ -4,11 +4,15 @@
  * Indice SaaS - Sistema modular para múltiples empresas
  */
 
-// Configuración de base de datos
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'corazon_indicesaas');
-define('DB_USER', 'corazon_caribe');
-define('DB_PASS', 'Kantun.01*');
+// Leer configuración desde .env
+function loadEnv($file = __DIR__ . '/.env') {
+    if (!file_exists($file)) return;
+    $vars = parse_ini_file($file);
+    foreach ($vars as $key => $value) {
+        $_ENV[$key] = $value;
+    }
+}
+loadEnv();
 
 // Rutas base del sistema
 define('BASE_PATH', __DIR__);
@@ -59,23 +63,23 @@ function redirect($url) {
     exit();
 }
 
-// Conexión a base de datos usando PDO
+// Conexión PDO
 function getDB() {
     static $pdo = null;
-    
+
     if ($pdo === null) {
         try {
-            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-            $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            $dsn = "mysql:host=" . $_ENV['DB_HOST'] . ";dbname=" . $_ENV['DB_NAME'] . ";charset=utf8mb4";
+            $pdo = new PDO($dsn, $_ENV['DB_USER'], $_ENV['DB_PASS'], [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
         } catch (PDOException $e) {
-            die("Error de conexión: " . $e->getMessage());
+            die("DB Connection Error: " . $e->getMessage());
         }
     }
-    
+
     return $pdo;
 }
 ?>
