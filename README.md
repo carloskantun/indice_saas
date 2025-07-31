@@ -130,3 +130,28 @@ lang/es.php → diccionario inicial
 
 indice-produccion/ → carpeta base funcional
 
+---
+
+## 👑 Panel Root - Gestión de Planes SaaS
+
+El sistema incluye un módulo `panel_root/` que permite al usuario con rol `root` controlar toda la gestión de monetización, planes y límites SaaS.
+
+### Funcionalidades incluidas:
+
+- CRUD completo de planes SaaS
+- Interfaz moderna con Bootstrap 5 y modales
+- Validaciones frontend y backend
+- Sistema de roles real (basado en `user_companies`)
+- Scripts de utilidad: crear root, listar usuarios, validar empresas con planes
+
+📥 Ver detalles en [`panel_root/README.md`](panel_root/README.md)
+
+## 👥 Gestión de Usuarios y Roles
+
+Los `superadmin` pueden:
+
+- Invitar nuevos usuarios por correo electrónico
+- Asignar roles por empresa, unidad o negocio
+- Controlar el acceso por módulos y acciones
+
+🧠 Un usuario puede tener múltiples roles en distintas empresas o unidades.

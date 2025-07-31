@@ -1,105 +1,97 @@
-# 📦 README_PLANES.md — Planes SaaS de Indice
+📦 README_PLANES.md — Gestión de Planes SaaS en Índice
+🎯 Objetivo
+Establecer las reglas, estructura y funciones que permiten al usuario root controlar la monetización y escalabilidad de la plataforma, a través de planes SaaS con límites definidos por usuarios, módulos, unidades y almacenamiento.
 
-Este documento define los diferentes planes disponibles en el sistema Indice SaaS, así como las reglas, límites y funcionalidades que cada uno habilita para empresas registradas.
+✅ ¿Quién puede gestionar los planes?
+El usuario con rol root (desde /panel_root/) es el único que puede:
 
----
+Crear, editar o eliminar planes
 
-## 🎯 Objetivo
+Asignar o cambiar planes a empresas
 
-Permitir que el `root` gestione la monetización del sistema a través de paquetes limitados o ilimitados, definidos por cantidad de usuarios, módulos, unidades, negocios y funcionalidades activas.
+Ver estadísticas y límites superados
 
----
+Forzar upgrades o suspender planes
 
-## 🧩 Estructura de un Plan
 
-Cada plan se registra en la tabla `planes` con los siguientes campos clave:
+🧩 Estructura de un plan
+Los planes se almacenan en la tabla plans con los siguientes campos clave:
 
-| Campo               | Descripción                                   |
-|---------------------|-----------------------------------------------|
-| `id`                | Identificador único del plan                  |
-| `nombre`            | Nombre comercial del plan                     |
-| `descripcion`       | Descripción resumida                          |
-| `precio_mensual`    | Costo mensual (opcional)                      |
-| `modulos_incluidos` | JSON con IDs de módulos activados            |
-| `usuarios_max`      | Número máximo de usuarios permitidos         |
-| `empresas_max`      | Empresas que puede crear ese SuperAdmin      |
-| `unidades_max`      | Unidades de negocio por empresa              |
-| `negocios_max`      | Negocios por unidad                           |
-| `storage_max_mb`    | Límite de almacenamiento en MB               |
-| `activo`            | true / false                                  |
+| Campo              | Descripción                                          |
+| ------------------ | ---------------------------------------------------- |
+| `id`               | ID único del plan                                    |
+| `name`             | Nombre del plan (ej. Free, Starter, Pro)             |
+| `description`      | Descripción del plan                                 |
+| `price_monthly`    | Precio mensual                                       |
+| `modules_included` | JSON con IDs de módulos habilitados                  |
+| `users_max`        | Máximo de usuarios permitidos                        |
+| `companies_max`    | (opcional) Número de empresas si aplica multitenancy |
+| `units_max`        | Máximo de unidades por empresa                       |
+| `businesses_max`   | Máximo de negocios por unidad                        |
+| `storage_max_mb`   | Límite de almacenamiento en MB                       |
+| `is_active`        | true / false (plan habilitado)                       |
 
----
 
-## 📊 Planes Predefinidos
+📊 Planes predefinidos sugeridos
+Plan	Empresas	Unidades	Negocios	Usuarios	Módulos	Precio
+Free	1	1	1	3	2	$0
+Starter	2	5	10	10	5	$25 USD
+Pro	5	10	25	25	8	$75 USD
+Enterprise	Ilimitado	Ilimitado	Ilimitado	Ilimitado	Todos	A medida
 
-| Plan         | Empresas | Unidades | Negocios | Usuarios | Módulos | Precio    |
-|--------------|----------|----------|----------|----------|---------|-----------|
-| **Free**     | 1        | 1        | 1        | 3        | 2       | $0        |
-| **Starter**  | 2        | 5        | 10       | 10       | 5       | $25 USD   |
-| **Pro**      | 5        | 10       | 25       | 25       | 8       | $75 USD   |
-| **Enterprise** | Ilimitado | Ilimitado | Ilimitado | Ilimitado | Todos   | A medida |
+🛠️ Panel Root: estructura sugerida
+Ubicación: /panel_root/
 
----
+/panel_root/
+├── index.php           # Dashboard general
+├── plans.php           # Vista y control de planes
+├── companies.php       # Empresas registradas
+├── modules.php         # Módulos disponibles del sistema
+├── controller.php      # Acciones centralizadas (AJAX)
+└── js/
+    └── root_panel.js   # Interacciones JS del panel
 
-## 🎛️ Gestión desde panel_root/
+🔄 Comportamiento esperado
+El sistema debe validar los límites del plan activo antes de permitir:
 
-El `root` puede:
+Crear nuevas unidades
 
-- ✅ Crear nuevos planes personalizados
-- ✅ Activar / desactivar planes
-- ✅ Ver qué empresa está en qué plan
-- ✅ Actualizar límites en tiempo real
-- ✅ Forzar upgrades si se supera el límite
+Agregar más usuarios
 
----
+Subir archivos (verificar storage_max_mb)
 
-## ⚙️ Validaciones del sistema
+Activar módulos fuera del plan
 
-Las validaciones se aplican al crear:
+🔁 Si el límite se alcanza:
 
-- Empresas (si `empresas_max` está alcanzado)
-- Usuarios (si supera `usuarios_max`)
-- Módulos (solo los del plan)
-- Archivos subidos (si se supera `storage_max_mb`)
-- Unidades / Negocios (según el plan)
+// Mensaje ejemplo
+"Tu plan actual no permite agregar más usuarios. Mejora tu plan para continuar."
+🔐 Validación en backend
+Se recomienda crear una clase o helper en:
+/lib/plan_limiter.php
 
-El sistema debe prevenir la acción o mostrar mensaje como:
+Con funciones como:
+function checkLimit($type, $currentValue, $maxAllowed);
+function getCurrentUsage($company_id);
+function planAllowsModule($company_id, $module_id);
 
-```php
-"Tu plan actual no permite agregar más unidades. Mejora a Starter o superior."
-🔄 Upgrade de Plan
-Los upgrades se gestionan desde /panel_admin/planes.php:
+🧪 Flujo típico de upgrade
+Desde /panel_admin/planes.php (visible al superadmin):
 
-Vista de plan actual
+Se muestra el plan actual
 
-Planes disponibles
+Se comparan límites y características
 
-Botón de upgrade manual o vía Stripe / PayPal (opcional)
+Se habilita un botón "Mejorar Plan"
 
-Permisos aplican en tiempo real
+Opcional: integración con Stripe / PayPal / Mercado Pago / 
 
-📂 Estructura sugerida
-text
-Copiar
-Editar
-/planes/
-├── index.php          # Vista de planes para el root
-├── editar.php         # Edición de planes
-├── controller.php     # CRUD de planes
-└── js/planes.js       # JS de validación de límites
-🔐 Seguridad y lógica
-La lógica para aplicar límites debe centralizarse en /lib/plan_limiter.php o similar.
+🧾 Notas adicionales
+El plan Free es clave como onboarding gratuito
 
-Toda acción como crear usuarios, unidades o subir archivos debe consultar el límite antes de permitirlo.
+El sistema no debe bloquear el uso si expira un plan, sino mostrar alertas y limitar nuevas acciones
 
-🧪 Siguientes pasos
-Crear tabla planes en la base de datos
+Los upgrades deben aplicarse en tiempo real
 
-Asociar campo plan_id a la tabla empresas
+Toda empresa (tabla companies) debe tener un campo plan_id
 
-Agregar validador de límites en funciones clave
-
-Panel visual para gestión de planes en /panel_root/
-
-🧾 Nota
-Este sistema no impide el uso gratuito. El plan Free sirve como onboarding natural y debe permitir experimentar con la plataforma sin pagar.

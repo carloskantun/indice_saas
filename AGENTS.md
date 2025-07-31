@@ -39,3 +39,40 @@ JS:
 ---
 
 (Agregar mantenimiento, transfers, servicio_cliente... conforme se vayan migrando)
+
+## 🧠 Módulo: panel_root
+
+Ruta: `/panel_root/`  
+Responsable: root  
+Descripción: Panel de gestión de planes SaaS y usuarios root.
+
+Permisos requeridos:
+- checkRole(['root'])
+
+Archivos clave:
+- index.php (Dashboard del sistema SaaS)
+- plans.php (Gestión de planes)
+- controller.php (Acciones de planes)
+- modals/modal_add_plan.php
+- modals/modal_edit_plan.php
+- js/root_panel.js
+
+Tablas relacionadas:
+- `plans`
+- `user_companies` (con campo `role`)
+- `companies.plan_id`
+
+Módulo: Admin (Gestión de usuarios)
+Ruta: /admin/
+Responsable: SUPERADMIN
+
+Archivos clave:
+- invite_user.php
+- manage_roles.php
+- controller.php
+- js/admin_users.js
+- modals/modal_invite_user.php
+
+Permisos aplicables:
+- admin.invite_user
+- admin.manage_roles

@@ -83,3 +83,15 @@
 - Todas las claves foráneas en inglés.
 - Los nombres de las columnas y tablas en inglés.
 - Los comentarios del sistema estarán traducidos para uso en español (vía lang).
+
+CREATE TABLE invitaciones (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255),
+  empresa_id INT,
+  unidad_id INT DEFAULT NULL,
+  negocio_id INT DEFAULT NULL,
+  rol VARCHAR(50),
+  token VARCHAR(64),
+  status ENUM('pendiente', 'aceptada', 'expirada') DEFAULT 'pendiente',
+  fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

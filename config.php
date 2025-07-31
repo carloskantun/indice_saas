@@ -53,8 +53,66 @@ function checkRole($requiredRoles = []) {
         return true;
     }
     
+    // Para el rol 'root' verificamos en la base de datos
+    if (in_array('root', $requiredRoles)) {
+        try {
+            $pdo = getDB();
+            $stmt = $pdo->prepare("
+                SELECT uc.role 
+                FROM user_companies uc 
+                WHERE uc.user_id = ? AND uc.role = 'root' AND uc.status = 'active'
+                LIMIT 1
+            ");
+            $stmt->execute([$_SESSION['user_id']]);
+            $result = $stmt->fetch();
+            
+            if ($result && $result['role'] === 'root') {
+                $_SESSION['current_role'] = 'root'; // Actualizar sesión
+                return true;
+            }
+        } catch (PDOException $e) {
+            error_log("Error checking root role: " . $e->getMessage());
+        }
+    }
+    
+    // Para otros roles, usar el rol actual de la sesión
     $userRole = $_SESSION['current_role'] ?? 'user';
     return in_array($userRole, $requiredRoles);
+}
+
+// Función para obtener roles del usuario en todas las empresas
+function getUserRoles($userId = null) {
+    if (!$userId) {
+        $userId = $_SESSION['user_id'] ?? null;
+    }
+    
+    if (!$userId) {
+        return [];
+    }
+    
+    try {
+        $pdo = getDB();
+        $stmt = $pdo->prepare("
+            SELECT uc.role, c.name as company_name, uc.company_id
+            FROM user_companies uc 
+            INNER JOIN companies c ON uc.company_id = c.id
+            WHERE uc.user_id = ? AND uc.status = 'active'
+            ORDER BY 
+                CASE uc.role
+                    WHEN 'root' THEN 1
+                    WHEN 'superadmin' THEN 2
+                    WHEN 'admin' THEN 3
+                    WHEN 'moderator' THEN 4
+                    WHEN 'support' THEN 5
+                    ELSE 6
+                END
+        ");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
+    } catch (PDOException $e) {
+        error_log("Error getting user roles: " . $e->getMessage());
+        return [];
+    }
 }
 
 // Función para redireccionar
@@ -81,5 +139,10 @@ function getDB() {
     }
 
     return $pdo;
+}
+
+// Incluir configuración de email para sistema admin
+if (file_exists(__DIR__ . '/admin/email_config.php')) {
+    require_once __DIR__ . '/admin/email_config.php';
 }
 ?>
