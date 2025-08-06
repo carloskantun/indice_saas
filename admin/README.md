@@ -1,31 +1,48 @@
-# Sistema de Gestión de Usuarios Admin
+# Panel de Administración - Índice SaaS
 
 ## 📋 Descripción
-Sistema completo de gestión de usuarios a nivel administrativo con funcionalidades de invitación, roles jerárquicos y permisos granulares.
 
-## 🚀 Características
+Sistema completo de administración para la plataforma SaaS, con gestión de usuarios, roles y permisos granulares por empresa.
 
-### ✅ Gestión de Invitaciones
-- Envío de invitaciones por email con token único
-- Expiración automática de invitaciones (48 horas)
-- Reenvío y cancelación de invitaciones
-- Aceptación de invitaciones con creación automática de cuenta
+## ✨ Características
 
-### ✅ Sistema de Roles Jerárquicos
-- **Superadmin**: Acceso total al sistema
-- **Admin**: Gestión de empresa y usuarios
-- **Moderator**: Supervisión y moderación
-- **User**: Acceso básico
+### Fase 1 - Gestión Básica (✅ Completado)
+- **Gestión de Usuarios**: Invitar, editar, activar/desactivar usuarios
+- **Control de Roles**: Asignación de roles por usuario (superadmin, admin, moderator, user)
+- **Gestión de Unidades**: Asignación de usuarios a unidades de negocio
+- **Seguridad**: Validación de acceso por empresa y rol
+- **Interfaz**: Panel moderno con Bootstrap 5.3 y SweetAlert2
 
-### ✅ Asignación Granular
-- Asignación a nivel de empresa
-- Asignación opcional a unidades específicas
-- Asignación opcional a negocios específicos
+### Fase 2 - Permisos Granulares (✅ Completado)
+- **Sistema de Módulos**: Gestión de módulos del sistema
+- **Permisos Detallados**: Control granular por usuario y módulo (ver, crear, editar, eliminar)
+- **Plantillas de Rol**: Aplicación automática de permisos según el rol
+- **Acciones Masivas**: Asignación de permisos a múltiples usuarios/módulos
+- **Auditoría**: Log de cambios en permisos
+- **Matriz de Permisos**: Interfaz visual para gestión de permisos
 
-### ✅ Gestión de Estados
-- Activación/suspensión de usuarios
-- Control de acceso por estado
-- Historial de cambios
+## 🚀 Instalación
+
+### Paso 1: Instalación Básica
+```bash
+# Navegar al directorio admin
+cd /path/to/your/project/admin
+
+# Ejecutar instalación básica
+php install_admin_tables.php
+```
+
+### Paso 2: Instalación de Permisos (Fase 2)
+```bash
+# Ejecutar instalación de permisos granulares
+php install_permissions_fase2.php
+```
+
+### Paso 3: Verificación
+```bash
+# Verificar estado del sistema
+php check_permissions_status.php
+```
 
 ## 📁 Estructura de Archivos
 

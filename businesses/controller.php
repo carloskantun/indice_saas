@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+require_once '../includes/plan_restrictions.php';
 
 header('Content-Type: application/json');
 
@@ -33,16 +34,24 @@ try {
             
             // Verificar permisos en la unidad
             $stmt = $db->prepare("
-                SELECT uc.role FROM units u 
+                SELECT uc.role, u.company_id FROM units u 
                 INNER JOIN user_companies uc ON u.company_id = uc.company_id 
                 WHERE uc.user_id = ? AND u.id = ?
             ");
             $stmt->execute([$user_id, $unit_id]);
-            $userRole = $stmt->fetchColumn();
+            $userAccess = $stmt->fetch();
             
-            if (!in_array($userRole, ['admin', 'superadmin', 'root'])) {
+            if (!$userAccess || !in_array($userAccess['role'], ['admin', 'superadmin', 'root'])) {
                 http_response_code(403);
                 echo json_encode(['error' => 'No tienes permisos para crear negocios en esta unidad']);
+                exit;
+            }
+            
+            // Verificar restricciones del plan
+            $restriction_check = checkPlanRestrictions($userAccess['company_id'], 'businesses', 1);
+            if (!$restriction_check['allowed']) {
+                http_response_code(403);
+                echo json_encode(['error' => $restriction_check['message']]);
                 exit;
             }
             

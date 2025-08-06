@@ -1,34 +1,63 @@
 <?php
 require_once '../config.php';
 
-// Verificar autenticación y permisos
-if (!checkRole(['superadmin', 'admin'])) {
-    header('Location: ../auth/');
-    exit();
+// Verificar autenticación y permisos de administración
+if (!checkRole(['root', 'superadmin', 'admin'])) {
+    redirect('/companies/');
 }
 
 $pdo = getDB();
 $current_company = null;
+$company_id = null;
 
-// Para superadmin, la empresa es opcional
-// Para admin, verificar que tenga una empresa asignada
-if (checkRole(['superadmin'])) {
-    // Superadmin puede trabajar sin empresa específica o seleccionar una
-    if (isset($_SESSION['current_company_id']) && !empty($_SESSION['current_company_id'])) {
-        $stmt = $pdo->prepare("SELECT name FROM companies WHERE id = ?");
-        $stmt->execute([$_SESSION['current_company_id']]);
-        $current_company = $stmt->fetch();
-    }
-} else {
-    // Para admin, es obligatorio tener una empresa
-    if (!isset($_SESSION['current_company_id']) || empty($_SESSION['current_company_id'])) {
-        header('Location: ../companies/');
-        exit();
+// Obtener la empresa seleccionada
+if (isset($_GET['company_id']) && !empty($_GET['company_id'])) {
+    $company_id = (int)$_GET['company_id'];
+    
+    // Verificar que el usuario tiene permisos superadmin en esta empresa
+    $stmt = $pdo->prepare("
+        SELECT c.*, uc.role 
+        FROM companies c 
+        INNER JOIN user_companies uc ON c.id = uc.company_id 
+        WHERE c.id = ? AND uc.user_id = ? AND uc.role = 'superadmin' AND uc.status = 'active'
+    ");
+    $stmt->execute([$company_id, $_SESSION['user_id']]);
+    $current_company = $stmt->fetch();
+    
+    if (!$current_company) {
+        redirect('/companies/');
     }
     
-    $stmt = $pdo->prepare("SELECT name FROM companies WHERE id = ?");
-    $stmt->execute([$_SESSION['current_company_id']]);
-    $current_company = $stmt->fetch();
+    // Establecer la empresa actual en la sesión
+    $_SESSION['current_company_id'] = $company_id;
+} else {
+    redirect('/companies/');
+}
+
+// Obtener estadísticas de la empresa
+$stats = [];
+try {
+    // Total de usuarios
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM user_companies WHERE company_id = ? AND status = 'active'");
+    $stmt->execute([$company_id]);
+    $stats['total_users'] = $stmt->fetchColumn();
+    
+    // Invitaciones pendientes
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM user_invitations WHERE company_id = ? AND status = 'pending'");
+    $stmt->execute([$company_id]);
+    $stats['pending_invitations'] = $stmt->fetchColumn();
+    
+    // Total de unidades
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM units WHERE company_id = ?");
+    $stmt->execute([$company_id]);
+    $stats['total_units'] = $stmt->fetchColumn();
+    
+    // Total de negocios
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM businesses WHERE company_id = ?");
+    $stmt->execute([$company_id]);
+    $stats['total_businesses'] = $stmt->fetchColumn();
+} catch (Exception $e) {
+    error_log("Error getting stats: " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
@@ -36,7 +65,7 @@ if (checkRole(['superadmin'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $lang['admin_user_management']; ?> - Índice Producción</title>
+    <title><?php echo $lang['admin_company']; ?> - <?php echo htmlspecialchars($current_company['name']); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
@@ -175,50 +204,30 @@ if (checkRole(['superadmin'])) {
                 <div class="sidebar p-3">
                     <div class="text-center mb-4">
                         <h4 class="text-white">
-                            <i class="fas fa-users-cog"></i> <?php echo $lang['admin_panel']; ?>
+                            <i class="fas fa-cogs"></i> <?php echo $lang['admin_company']; ?>
                         </h4>
                         <small class="text-white-50">
-                            <?php 
-                            if ($current_company && isset($current_company['name'])) {
-                                echo htmlspecialchars($current_company['name']);
-                            } else {
-                                echo checkRole(['superadmin']) ? 'Sistema Global' : 'Sin empresa seleccionada';
-                            }
-                            ?>
+                            <?php echo htmlspecialchars($current_company['name']); ?>
                         </small>
                     </div>
                     
-                    <?php if (checkRole(['superadmin'])): ?>
-                    <!-- Selector de Empresa para Superadmin -->
-                    <div class="mb-3">
-                        <select class="form-select form-select-sm" id="companySelector" onchange="changeCompany(this.value)">
-                            <option value="">Todas las empresas</option>
-                            <?php
-                            $stmt = $pdo->prepare("SELECT id, name FROM companies WHERE status = 'active' ORDER BY name");
-                            $stmt->execute();
-                            $companies = $stmt->fetchAll();
-                            foreach ($companies as $company) {
-                                $selected = (isset($_SESSION['current_company_id']) && $_SESSION['current_company_id'] == $company['id']) ? 'selected' : '';
-                                echo "<option value='{$company['id']}' $selected>" . htmlspecialchars($company['name']) . "</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <?php endif; ?>
-                    
                     <nav class="nav flex-column">
-                        <a class="nav-link active" href="#users" data-tab="users">
-                            <i class="fas fa-users me-2"></i> <?php echo $lang['users']; ?>
+                        <a class="nav-link active" href="#dashboard" data-tab="dashboard">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
-                        <a class="nav-link" href="#invitations" data-tab="invitations">
-                            <i class="fas fa-envelope me-2"></i> <?php echo $lang['invitations']; ?>
+                        <a class="nav-link" href="usuarios.php?company_id=<?php echo $company_id; ?>">
+                            <i class="fas fa-users me-2"></i> <?php echo $lang['company_users']; ?>
                         </a>
-                        <a class="nav-link" href="#roles" data-tab="roles">
-                            <i class="fas fa-user-shield me-2"></i> <?php echo $lang['roles']; ?>
+                        <a class="nav-link" href="roles.php?company_id=<?php echo $company_id; ?>">
+                            <i class="fas fa-user-shield me-2"></i> <?php echo $lang['company_roles']; ?>
                         </a>
+                        <a class="nav-link" href="permissions_management.php">
+                            <i class="fas fa-key me-2"></i> <?php echo $lang['company_permissions']; ?>
+                        </a>
+                        
                         <div class="mt-4 pt-4 border-top border-white-50">
-                            <a class="nav-link" href="../">
-                                <i class="fas fa-arrow-left me-2"></i> <?php echo $lang['back_to_main']; ?>
+                            <a class="nav-link" href="../companies/">
+                                <i class="fas fa-arrow-left me-2"></i> Volver a Empresas
                             </a>
                             <a class="nav-link" href="../auth/logout.php">
                                 <i class="fas fa-sign-out-alt me-2"></i> <?php echo $lang['logout']; ?>
@@ -231,133 +240,90 @@ if (checkRole(['superadmin'])) {
             <!-- Main Content -->
             <div class="col-lg-9 col-xl-10">
                 <div class="main-content p-4">
-                    <!-- Header -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h2 class="mb-0">
-                                <i class="fas fa-users-cog text-primary"></i> 
-                                <?php echo $lang['admin_user_management']; ?>
-                            </h2>
-                            <p class="text-muted mb-0">
-                                <?php if ($current_company && isset($current_company['name'])): ?>
-                                    <?php echo $lang['manage_users_company']; ?>: 
-                                    <strong><?php echo htmlspecialchars($current_company['name']); ?></strong>
-                                <?php else: ?>
-                                    <?php echo checkRole(['superadmin']) ? 'Administración Global del Sistema' : 'Gestión de Usuarios'; ?>
-                                <?php endif; ?>
-                            </p>
-                        </div>
-                        <div>
-                            <button class="btn btn-gradient" onclick="showInviteModal()">
-                                <i class="fas fa-user-plus me-2"></i> <?php echo $lang['invite_user']; ?>
-                            </button>
-                        </div>
-                    </div>
-
-                    <?php if (checkRole(['superadmin']) && (!$current_company || !isset($current_company['name']))): ?>
-                    <!-- Mensaje para superadmin sin empresa seleccionada -->
-                    <div class="alert alert-info" role="alert">
-                        <i class="fas fa-info-circle"></i>
-                        <strong>Modo Administración Global:</strong> 
-                        Selecciona una empresa específica desde el menú lateral para gestionar usuarios y enviar invitaciones de esa empresa.
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- Users Tab -->
-                    <div id="users-tab" class="tab-content active">
-                        <div class="card fade-in-up">
-                            <div class="card-header bg-transparent">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-users me-2"></i> <?php echo $lang['users_list']; ?>
-                                </h5>
+                    
+                    <!-- Dashboard Tab -->
+                    <div id="dashboard-tab" class="tab-content active">
+                        <div class="row mb-4">
+                            <div class="col">
+                                <h2 class="h4 mb-1"><?php echo $lang['admin_company']; ?></h2>
+                                <p class="text-muted mb-0">
+                                    Gestión integral de <?php echo htmlspecialchars($current_company['name']); ?>
+                                </p>
                             </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-modern" id="usersTable">
-                                        <thead>
-                                            <tr>
-                                                <th><?php echo $lang['name']; ?></th>
-                                                <th><?php echo $lang['email']; ?></th>
-                                                <th><?php echo $lang['role']; ?></th>
-                                                <th><?php echo $lang['status']; ?></th>
-                                                <th><?php echo $lang['joined_date']; ?></th>
-                                                <th><?php echo $lang['actions']; ?></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="usersTableBody">
-                                            <!-- Los usuarios se cargarán aquí vía AJAX -->
-                                        </tbody>
-                                    </table>
+                        </div>
+
+                        <!-- Stats Cards -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="card text-center fade-in-up">
+                                    <div class="card-body">
+                                        <i class="fas fa-users text-primary" style="font-size: 2rem;"></i>
+                                        <h3 class="mt-2"><?php echo $stats['total_users'] ?? 0; ?></h3>
+                                        <p class="text-muted mb-0"><?php echo $lang['company_users']; ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center fade-in-up">
+                                    <div class="card-body">
+                                        <i class="fas fa-envelope text-warning" style="font-size: 2rem;"></i>
+                                        <h3 class="mt-2"><?php echo $stats['pending_invitations'] ?? 0; ?></h3>
+                                        <p class="text-muted mb-0"><?php echo $lang['pending_invitations']; ?></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center fade-in-up">
+                                    <div class="card-body">
+                                        <i class="fas fa-building text-info" style="font-size: 2rem;"></i>
+                                        <h3 class="mt-2"><?php echo $stats['total_units'] ?? 0; ?></h3>
+                                        <p class="text-muted mb-0">Unidades</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card text-center fade-in-up">
+                                    <div class="card-body">
+                                        <i class="fas fa-briefcase text-success" style="font-size: 2rem;"></i>
+                                        <h3 class="mt-2"><?php echo $stats['total_businesses'] ?? 0; ?></h3>
+                                        <p class="text-muted mb-0">Negocios</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Invitations Tab -->
-                    <div id="invitations-tab" class="tab-content">
-                        <div class="card fade-in-up">
-                            <div class="card-header bg-transparent">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-envelope me-2"></i> <?php echo $lang['pending_invitations']; ?>
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="invitationsContainer">
-                                    <!-- Las invitaciones se cargarán aquí vía AJAX -->
+                        <!-- Quick Actions -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card fade-in-up">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Acciones Rápidas</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-gradient" onclick="showInviteModal()">
+                                                <i class="fas fa-user-plus me-2"></i><?php echo $lang['invite_user']; ?>
+                                            </button>
+                                            <a href="javascript:void(0)" onclick="showComingSoon()" class="btn btn-outline-primary">
+                                                <i class="fas fa-users me-2"></i>Ver Todos los Usuarios
+                                            </a>
+                                            <a href="permissions_management.php" class="btn btn-outline-success">
+                                                <i class="fas fa-key me-2"></i>Gestión de Permisos
+                                            </a>
+                                            <a href="email_settings.php" class="btn btn-outline-warning">
+                                                <i class="fas fa-envelope me-2"></i>Configurar Email
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Roles Tab -->
-                    <div id="roles-tab" class="tab-content">
-                        <div class="card fade-in-up">
-                            <div class="card-header bg-transparent">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-user-shield me-2"></i> <?php echo $lang['role_management']; ?>
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="card border-primary">
-                                            <div class="card-body">
-                                                <h6 class="card-title text-primary">
-                                                    <i class="fas fa-crown"></i> <?php echo $lang['superadmin']; ?>
-                                                </h6>
-                                                <p class="card-text small"><?php echo $lang['superadmin_desc']; ?></p>
-                                            </div>
-                                        </div>
+                            <div class="col-md-6">
+                                <div class="card fade-in-up">
+                                    <div class="card-header">
+                                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Actividad Reciente</h5>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="card border-success">
-                                            <div class="card-body">
-                                                <h6 class="card-title text-success">
-                                                    <i class="fas fa-user-shield"></i> <?php echo $lang['admin']; ?>
-                                                </h6>
-                                                <p class="card-text small"><?php echo $lang['admin_desc']; ?></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="card border-warning">
-                                            <div class="card-body">
-                                                <h6 class="card-title text-warning">
-                                                    <i class="fas fa-user-edit"></i> <?php echo $lang['moderator']; ?>
-                                                </h6>
-                                                <p class="card-text small"><?php echo $lang['moderator_desc']; ?></p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="card border-info">
-                                            <div class="card-body">
-                                                <h6 class="card-title text-info">
-                                                    <i class="fas fa-user"></i> <?php echo $lang['user']; ?>
-                                                </h6>
-                                                <p class="card-text small"><?php echo $lang['user_desc']; ?></p>
-                                            </div>
-                                        </div>
+                                    <div class="card-body">
+                                        <p class="text-muted">Próximamente: Historial de acciones recientes en la empresa</p>
                                     </div>
                                 </div>
                             </div>
@@ -377,38 +343,37 @@ if (checkRole(['superadmin'])) {
     <script src="js/admin_users.js"></script>
     
     <script>
-    // Función para cambiar empresa (solo para superadmin)
-    function changeCompany(companyId) {
-        // Hacer request para cambiar la empresa activa
-        fetch('../companies/controller.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: 'action=switch_company&company_id=' + companyId
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Recargar la página para actualizar el contexto
-                window.location.reload();
-            } else {
-                Swal.fire({
-                    title: 'Error',
-                    text: data.message || 'Error al cambiar empresa',
-                    icon: 'error'
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            Swal.fire({
-                title: 'Error',
-                text: 'Error de conexión',
-                icon: 'error'
-            });
+    // Global variables
+    window.currentCompanyId = <?php echo $company_id; ?>;
+    
+    // Global function for invite modal
+    function showInviteModal() {
+        console.log('Opening invite modal...');
+        const modal = new bootstrap.Modal(document.getElementById('inviteUserModal'));
+        modal.show();
+    }
+    
+    // Function for coming soon features
+    function showComingSoon() {
+        Swal.fire({
+            title: 'Próximamente',
+            text: 'Esta funcionalidad estará disponible pronto. Usa el nuevo sistema de "Gestión de Permisos" por ahora.',
+            icon: 'info',
+            confirmButtonText: 'Entendido'
         });
     }
+    
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Admin dashboard loaded, company ID:', window.currentCompanyId);
+        
+        // Load units for invite modal
+        if (typeof loadUnits === 'function') {
+            loadUnits();
+        } else {
+            console.warn('loadUnits function not found');
+        }
+    });
     </script>
 </body>
 </html>

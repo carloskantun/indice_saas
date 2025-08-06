@@ -1,278 +1,239 @@
 <?php
 /**
- * Script para verificar y corregir la estructura de base de datos
- * Resuelve problemas de columnas y tablas faltantes
+ * Script de corrección rápida para arreglar problemas de base de datos
+ * Ejecutar una sola vez para solucionar problemas de estructura
  */
 
 require_once 'config.php';
 
-echo "<!DOCTYPE html>";
-echo "<html><head><meta charset='UTF-8'><title>Corrección de Base de Datos</title>";
-echo "<style>body{font-family:Arial,sans-serif;max-width:800px;margin:50px auto;padding:20px;}";
-echo ".success{color:green;}.error{color:red;}.info{color:blue;}.warning{color:orange;}</style></head><body>";
-
-echo "<h1>🔧 Corrección de Base de Datos</h1>";
-
-try {
-    $pdo = getDB();
-    echo "<div class='info'>✅ Conexión a base de datos establecida</div><br>";
-    
-    // 1. Verificar estructura de tabla plans
-    echo "<h2>📋 Verificando tabla 'plans'</h2>";
-    
-    $stmt = $pdo->query("DESCRIBE plans");
-    $planColumns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    
-    echo "<div class='info'>Columnas existentes en 'plans': " . implode(', ', $planColumns) . "</div>";
-    
-    // Agregar columna monthly_price si no existe
-    if (!in_array('monthly_price', $planColumns)) {
-        echo "<div class='warning'>⚠️ Columna 'monthly_price' no existe en tabla 'plans'</div>";
-        $pdo->exec("ALTER TABLE plans ADD COLUMN monthly_price DECIMAL(10,2) DEFAULT 0.00");
-        echo "<div class='success'>✅ Columna 'monthly_price' agregada a tabla 'plans'</div>";
-    }
-    
-    // Agregar columna annual_price si no existe
-    if (!in_array('annual_price', $planColumns)) {
-        echo "<div class='warning'>⚠️ Columna 'annual_price' no existe en tabla 'plans'</div>";
-        $pdo->exec("ALTER TABLE plans ADD COLUMN annual_price DECIMAL(10,2) DEFAULT 0.00");
-        echo "<div class='success'>✅ Columna 'annual_price' agregada a tabla 'plans'</div>";
-    }
-    
-    // Verificar y agregar columna status
-    if (in_array('is_active', $planColumns) && !in_array('status', $planColumns)) {
-        echo "<div class='warning'>⚠️ Tabla 'plans' usa 'is_active' en lugar de 'status'</div>";
-        
-        // Agregar columna status
-        $pdo->exec("ALTER TABLE plans ADD COLUMN status ENUM('active', 'inactive') DEFAULT 'active'");
-        echo "<div class='success'>✅ Columna 'status' agregada a tabla 'plans'</div>";
-        
-        // Migrar datos de is_active a status
-        $pdo->exec("UPDATE plans SET status = CASE WHEN is_active = 1 THEN 'active' ELSE 'inactive' END");
-        echo "<div class='success'>✅ Datos migrados de 'is_active' a 'status'</div>";
-        
-    } else {
-        echo "<div class='success'>✅ Tabla 'plans' tiene estructura correcta</div>";
-    }
-    
-    // Actualizar precios de ejemplo si están en 0
-    $stmt = $pdo->query("SELECT COUNT(*) as count FROM plans WHERE monthly_price = 0");
-    $plansWithZeroPrice = $stmt->fetch()['count'];
-    
-    if ($plansWithZeroPrice > 0) {
-        echo "<div class='warning'>⚠️ Encontrados $plansWithZeroPrice planes con precio 0. Actualizando precios de ejemplo...</div>";
-        
-        // Actualizar precios de ejemplo
-        $pdo->exec("
-            UPDATE plans SET 
-                monthly_price = CASE 
-                    WHEN LOWER(name) LIKE '%básico%' OR LOWER(name) LIKE '%basic%' THEN 29.99
-                    WHEN LOWER(name) LIKE '%estándar%' OR LOWER(name) LIKE '%standard%' THEN 59.99
-                    WHEN LOWER(name) LIKE '%premium%' OR LOWER(name) LIKE '%pro%' THEN 99.99
-                    WHEN LOWER(name) LIKE '%enterprise%' OR LOWER(name) LIKE '%empresarial%' THEN 199.99
-                    ELSE 49.99
-                END,
-                annual_price = CASE 
-                    WHEN LOWER(name) LIKE '%básico%' OR LOWER(name) LIKE '%basic%' THEN 299.99
-                    WHEN LOWER(name) LIKE '%estándar%' OR LOWER(name) LIKE '%standard%' THEN 599.99
-                    WHEN LOWER(name) LIKE '%premium%' OR LOWER(name) LIKE '%pro%' THEN 999.99
-                    WHEN LOWER(name) LIKE '%enterprise%' OR LOWER(name) LIKE '%empresarial%' THEN 1999.99
-                    ELSE 499.99
-                END
-            WHERE monthly_price = 0
-        ");
-        
-        echo "<div class='success'>✅ Precios de ejemplo asignados automáticamente</div>";
-    }
-    
-    // 2. Verificar estructura de tabla companies
-    echo "<h2>🏢 Verificando tabla 'companies'</h2>";
-    
-    $stmt = $pdo->query("DESCRIBE companies");
-    $companyColumns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    
-    if (!in_array('status', $companyColumns)) {
-        echo "<div class='warning'>⚠️ Tabla 'companies' no tiene columna 'status'</div>";
-        
-        // Agregar columna status
-        $pdo->exec("ALTER TABLE companies ADD COLUMN status ENUM('active', 'inactive', 'suspended') DEFAULT 'active'");
-        echo "<div class='success'>✅ Columna 'status' agregada a tabla 'companies'</div>";
-        
-    } else {
-        echo "<div class='success'>✅ Tabla 'companies' tiene estructura correcta</div>";
-    }
-    
-    // 3. Verificar estructura de tabla users
-    echo "<h2>👥 Verificando tabla 'users'</h2>";
-    
-    $stmt = $pdo->query("DESCRIBE users");
-    $userColumns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    
-    if (!in_array('status', $userColumns)) {
-        echo "<div class='warning'>⚠️ Tabla 'users' no tiene columna 'status'</div>";
-        
-        // Agregar columna status
-        $pdo->exec("ALTER TABLE users ADD COLUMN status ENUM('active', 'inactive', 'suspended') DEFAULT 'active'");
-        echo "<div class='success'>✅ Columna 'status' agregada a tabla 'users'</div>";
-        
-    } else {
-        echo "<div class='success'>✅ Tabla 'users' tiene estructura correcta</div>";
-    }
-    
-    // 4. Verificar si existe tabla modules
-    echo "<h2>🧩 Verificando tabla 'modules'</h2>";
-    
-    $stmt = $pdo->query("SHOW TABLES LIKE 'modules'");
-    $moduleTableExists = $stmt->fetch();
-    
-    if (!$moduleTableExists) {
-        echo "<div class='warning'>⚠️ Tabla 'modules' no existe. Creando...</div>";
-        
-        // Crear tabla modules
-        $createModulesSQL = "
-        CREATE TABLE modules (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            slug VARCHAR(100) NOT NULL UNIQUE,
-            description TEXT,
-            icon VARCHAR(50) DEFAULT 'fas fa-puzzle-piece',
-            color VARCHAR(7) DEFAULT '#3498db',
-            url VARCHAR(200),
-            status ENUM('active', 'inactive') DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )";
-        
-        $pdo->exec($createModulesSQL);
-        echo "<div class='success'>✅ Tabla 'modules' creada exitosamente</div>";
-        
-        // Insertar módulos por defecto
-        $defaultModules = [
-            ['Dashboard', 'dashboard', 'Panel principal con estadísticas', 'fas fa-tachometer-alt', '#3498db', '/dashboard'],
-            ['Gestión de Usuarios', 'users', 'Administración de usuarios del sistema', 'fas fa-users', '#2ecc71', '/users'],
-            ['Gestión de Empresas', 'companies', 'Administración de empresas clientes', 'fas fa-building', '#e74c3c', '/companies'],
-            ['Facturación', 'billing', 'Sistema de facturación y pagos', 'fas fa-file-invoice-dollar', '#f39c12', '/billing'],
-            ['Reportes', 'reports', 'Generación de reportes y análisis', 'fas fa-chart-line', '#9b59b6', '/reports'],
-            ['Configuración', 'settings', 'Configuraciones del sistema', 'fas fa-cog', '#34495e', '/settings'],
-            ['Soporte', 'support', 'Sistema de tickets de soporte', 'fas fa-life-ring', '#1abc9c', '/support'],
-            ['API', 'api', 'Gestión de API y integraciones', 'fas fa-code', '#e67e22', '/api']
-        ];
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO modules (name, slug, description, icon, color, url) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        
-        foreach ($defaultModules as $module) {
-            $stmt->execute($module);
-        }
-        
-        echo "<div class='success'>✅ " . count($defaultModules) . " módulos por defecto insertados</div>";
-        
-    } else {
-        echo "<div class='success'>✅ Tabla 'modules' ya existe</div>";
-    }
-    
-    // 5. Verificar si existe tabla plan_modules
-    echo "<h2>🔗 Verificando tabla 'plan_modules'</h2>";
-    
-    $stmt = $pdo->query("SHOW TABLES LIKE 'plan_modules'");
-    $planModulesTableExists = $stmt->fetch();
-    
-    if (!$planModulesTableExists) {
-        echo "<div class='warning'>⚠️ Tabla 'plan_modules' no existe. Creando...</div>";
-        
-        // Crear tabla plan_modules
-        $createPlanModulesSQL = "
-        CREATE TABLE plan_modules (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            plan_id INT NOT NULL,
-            module_id INT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE CASCADE,
-            FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_plan_module (plan_id, module_id)
-        )";
-        
-        $pdo->exec($createPlanModulesSQL);
-        echo "<div class='success'>✅ Tabla 'plan_modules' creada exitosamente</div>";
-        
-        // Asignar todos los módulos a todos los planes existentes
-        $stmt = $pdo->query("SELECT id FROM plans WHERE status = 'active' OR is_active = 1");
-        $plans = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        $stmt = $pdo->query("SELECT id FROM modules WHERE status = 'active'");
-        $modules = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        if (!empty($plans) && !empty($modules)) {
-            $insertStmt = $pdo->prepare("INSERT IGNORE INTO plan_modules (plan_id, module_id) VALUES (?, ?)");
-            $assignedCount = 0;
-            
-            foreach ($plans as $planId) {
-                foreach ($modules as $moduleId) {
-                    $insertStmt->execute([$planId, $moduleId]);
-                    $assignedCount++;
-                }
-            }
-            
-            echo "<div class='success'>✅ $assignedCount asignaciones plan-módulo creadas</div>";
-        }
-        
-    } else {
-        echo "<div class='success'>✅ Tabla 'plan_modules' ya existe</div>";
-    }
-    
-    // 6. Verificar estructura de tabla user_companies
-    echo "<h2>🤝 Verificando tabla 'user_companies'</h2>";
-    
-    $stmt = $pdo->query("SHOW TABLES LIKE 'user_companies'");
-    $userCompaniesExists = $stmt->fetch();
-    
-    if (!$userCompaniesExists) {
-        echo "<div class='warning'>⚠️ Tabla 'user_companies' no existe. Creando...</div>";
-        
-        $createUserCompaniesSQL = "
-        CREATE TABLE user_companies (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            company_id INT NOT NULL,
-            role ENUM('root', 'support', 'superadmin', 'admin', 'moderator', 'user') DEFAULT 'user',
-            status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
-            UNIQUE KEY unique_user_company (user_id, company_id)
-        )";
-        
-        $pdo->exec($createUserCompaniesSQL);
-        echo "<div class='success'>✅ Tabla 'user_companies' creada exitosamente</div>";
-        
-    } else {
-        echo "<div class='success'>✅ Tabla 'user_companies' ya existe</div>";
-        
-        // Verificar si tiene columna status
-        $stmt = $pdo->query("DESCRIBE user_companies");
-        $ucColumns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        if (!in_array('status', $ucColumns)) {
-            $pdo->exec("ALTER TABLE user_companies ADD COLUMN status ENUM('active', 'inactive', 'suspended') DEFAULT 'active'");
-            echo "<div class='success'>✅ Columna 'status' agregada a tabla 'user_companies'</div>";
-        }
-    }
-    
-    echo "<br><h2>🎉 Resumen de Correcciones</h2>";
-    echo "<div class='success'>✅ Base de datos corregida exitosamente</div>";
-    echo "<div class='info'>ℹ️ Todas las tablas tienen la estructura correcta</div>";
-    echo "<div class='info'>ℹ️ Las columnas 'status' están disponibles en todas las tablas</div>";
-    echo "<div class='info'>ℹ️ Los módulos por defecto han sido insertados</div>";
-    echo "<div class='info'>ℹ️ Las relaciones plan-módulo están configuradas</div>";
-    
-    echo "<br><a href='panel_root/index.php' style='background:#007bff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;'>Ir al Dashboard</a>";
-    
-} catch (PDOException $e) {
-    echo "<div class='error'>❌ Error: " . htmlspecialchars($e->getMessage()) . "</div>";
+// Solo permitir acceso a usuarios root/superadmin
+if (!checkAuth() || !checkRole(['root', 'superadmin'])) {
+    die('❌ Acceso denegado. Solo usuarios root/superadmin pueden ejecutar este script.');
 }
 
-echo "</body></html>";
+header('Content-Type: text/html; charset=UTF-8');
 ?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Corrección de Base de Datos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-warning text-dark">
+                        <h3 class="mb-0">
+                            <i class="fas fa-tools me-2"></i>Corrección de Base de Datos
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        
+                        <?php
+                        try {
+                            $db = getDB();
+                            echo "<h5>📋 Verificando y corrigiendo estructura de base de datos...</h5>";
+                            echo "<div class='mb-4'>";
+                            
+                            $fixes_applied = 0;
+                            
+                            // 1. Verificar y corregir tabla notifications
+                            echo "<h6 class='mt-3'>🔔 Verificando tabla notifications...</h6>";
+                            
+                            $tables_query = $db->query("SHOW TABLES LIKE 'notifications'");
+                            $notifications_exists = $tables_query->fetch();
+                            
+                            if ($notifications_exists) {
+                                // Verificar columnas faltantes
+                                $columns_query = $db->query("SHOW COLUMNS FROM notifications");
+                                $columns = $columns_query->fetchAll(PDO::FETCH_COLUMN);
+                                
+                                $required_columns = [
+                                    'user_id' => 'int(11) NOT NULL',
+                                    'company_id' => 'int(11) DEFAULT NULL',
+                                    'type' => 'varchar(50) DEFAULT NULL',
+                                    'title' => 'varchar(255) DEFAULT NULL',
+                                    'message' => 'text',
+                                    'action_url' => 'varchar(255) DEFAULT NULL',
+                                    'status' => "enum('pending','read','dismissed') DEFAULT 'pending'",
+                                    'created_at' => 'timestamp NULL DEFAULT CURRENT_TIMESTAMP'
+                                ];
+                                
+                                foreach ($required_columns as $column => $definition) {
+                                    if (!in_array($column, $columns)) {
+                                        echo "<div class='alert alert-info'>";
+                                        echo "➕ Agregando columna faltante: <code>$column</code>";
+                                        echo "</div>";
+                                        
+                                        $alter_sql = "ALTER TABLE notifications ADD COLUMN `$column` $definition";
+                                        $db->exec($alter_sql);
+                                        $fixes_applied++;
+                                    }
+                                }
+                                
+                                echo "<div class='alert alert-success'>";
+                                echo "✅ Tabla notifications verificada y actualizada";
+                                echo "</div>";
+                                
+                            } else {
+                                echo "<div class='alert alert-warning'>";
+                                echo "⚠️ Tabla notifications no existe. Creando...";
+                                echo "</div>";
+                                
+                                $create_notifications_sql = "
+                                CREATE TABLE `notifications` (
+                                  `id` int(11) NOT NULL AUTO_INCREMENT,
+                                  `user_id` int(11) NOT NULL,
+                                  `company_id` int(11) DEFAULT NULL,
+                                  `type` varchar(50) DEFAULT NULL,
+                                  `title` varchar(255) DEFAULT NULL,
+                                  `message` text,
+                                  `action_url` varchar(255) DEFAULT NULL,
+                                  `status` enum('pending','read','dismissed') DEFAULT 'pending',
+                                  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+                                  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                  PRIMARY KEY (`id`),
+                                  KEY `user_id` (`user_id`),
+                                  KEY `company_id` (`company_id`),
+                                  KEY `status` (`status`)
+                                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                                ";
+                                $db->exec($create_notifications_sql);
+                                echo "<div class='alert alert-success'>";
+                                echo "✅ Tabla notifications creada correctamente";
+                                echo "</div>";
+                                $fixes_applied++;
+                            }
+                            
+                            // 2. Verificar tabla businesses (para el problema de creación)
+                            echo "<h6 class='mt-3'>🏢 Verificando tabla businesses...</h6>";
+                            
+                            $business_columns_query = $db->query("SHOW COLUMNS FROM businesses");
+                            $business_columns = $business_columns_query->fetchAll(PDO::FETCH_COLUMN);
+                            
+                            $required_business_columns = [
+                                'name' => 'varchar(255) NOT NULL',
+                                'description' => 'text',
+                                'type_id' => 'int(11) DEFAULT NULL',
+                                'unit_id' => 'int(11) DEFAULT NULL',
+                                'status' => "enum('active','inactive') DEFAULT 'active'",
+                                'created_by' => 'int(11) DEFAULT NULL',
+                                'created_at' => 'timestamp NULL DEFAULT CURRENT_TIMESTAMP'
+                            ];
+                            
+                            foreach ($required_business_columns as $column => $definition) {
+                                if (!in_array($column, $business_columns)) {
+                                    echo "<div class='alert alert-info'>";
+                                    echo "➕ Agregando columna faltante en businesses: <code>$column</code>";
+                                    echo "</div>";
+                                    
+                                    $alter_sql = "ALTER TABLE businesses ADD COLUMN `$column` $definition";
+                                    $db->exec($alter_sql);
+                                    $fixes_applied++;
+                                }
+                            }
+                            
+                            echo "<div class='alert alert-success'>";
+                            echo "✅ Tabla businesses verificada";
+                            echo "</div>";
+                            
+                            // 3. Verificar que user_companies tenga joined_at
+                            echo "<h6 class='mt-3'>👥 Verificando tabla user_companies...</h6>";
+                            
+                            $uc_columns_query = $db->query("SHOW COLUMNS FROM user_companies");
+                            $uc_columns = $uc_columns_query->fetchAll(PDO::FETCH_COLUMN);
+                            
+                            if (!in_array('joined_at', $uc_columns)) {
+                                echo "<div class='alert alert-info'>";
+                                echo "➕ Agregando columna joined_at a user_companies";
+                                echo "</div>";
+                                
+                                $alter_sql = "ALTER TABLE user_companies ADD COLUMN `joined_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP";
+                                $db->exec($alter_sql);
+                                $fixes_applied++;
+                            }
+                            
+                            echo "<div class='alert alert-success'>";
+                            echo "✅ Tabla user_companies verificada";
+                            echo "</div>";
+                            
+                            // 4. Verificar permisos para businesses
+                            echo "<h6 class='mt-3'>🔐 Verificando permisos para businesses...</h6>";
+                            
+                            $business_perms = [
+                                ['businesses.view', 'Ver negocios', 'businesses'],
+                                ['businesses.create', 'Crear negocios', 'businesses'],
+                                ['businesses.edit', 'Editar negocios', 'businesses'],
+                                ['businesses.delete', 'Eliminar negocios', 'businesses']
+                            ];
+                            
+                            foreach ($business_perms as $perm) {
+                                $check_perm = $db->prepare("SELECT id FROM permissions WHERE key_name = ?");
+                                $check_perm->execute([$perm[0]]);
+                                
+                                if (!$check_perm->fetch()) {
+                                    $insert_perm = $db->prepare("INSERT INTO permissions (key_name, description, module) VALUES (?, ?, ?)");
+                                    $insert_perm->execute($perm);
+                                    echo "<div class='alert alert-info'>";
+                                    echo "➕ Agregando permiso: <code>{$perm[0]}</code>";
+                                    echo "</div>";
+                                    $fixes_applied++;
+                                }
+                            }
+                            
+                            echo "<div class='alert alert-success'>";
+                            echo "✅ Permisos para businesses verificados";
+                            echo "</div>";
+                            
+                            // Resumen final
+                            echo "<div class='mt-4 p-3 bg-light rounded'>";
+                            echo "<h6><i class='fas fa-clipboard-check me-2'></i>Resumen de Correcciones:</h6>";
+                            
+                            if ($fixes_applied > 0) {
+                                echo "<div class='text-success'>";
+                                echo "<i class='fas fa-check-circle me-2'></i>";
+                                echo "<strong>✅ Se aplicaron $fixes_applied correcciones</strong>";
+                                echo "</div>";
+                                echo "<p class='mt-2 mb-0'>La base de datos ha sido actualizada. Los errores reportados deberían estar resueltos.</p>";
+                            } else {
+                                echo "<div class='text-info'>";
+                                echo "<i class='fas fa-info-circle me-2'></i>";
+                                echo "<strong>ℹ️ No se necesitaron correcciones</strong>";
+                                echo "</div>";
+                                echo "<p class='mt-2 mb-0'>La estructura de la base de datos está correcta.</p>";
+                            }
+                            echo "</div>";
+                            
+                        } catch (Exception $e) {
+                            echo "<div class='alert alert-danger'>";
+                            echo "<h5>❌ Error:</h5>";
+                            echo "<p>" . htmlspecialchars($e->getMessage()) . "</p>";
+                            echo "</div>";
+                        }
+                        ?>
+                        
+                        <div class="mt-4 text-center">
+                            <a href="companies/" class="btn btn-primary">
+                                <i class="fas fa-building me-2"></i>Ir a Empresas
+                            </a>
+                            <a href="businesses/" class="btn btn-success">
+                                <i class="fas fa-store me-2"></i>Probar Negocios
+                            </a>
+                            <a href="test_invitation.php" class="btn btn-warning">
+                                <i class="fas fa-envelope me-2"></i>Probar Invitaciones
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

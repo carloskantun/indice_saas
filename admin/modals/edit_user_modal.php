@@ -1,6 +1,6 @@
 <!-- Modal para editar usuario -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
@@ -12,39 +12,72 @@
                 <form id="editUserForm">
                     <input type="hidden" id="editUserId" name="user_id">
                     
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-user me-1"></i> <?php echo $lang['name']; ?>
-                        </label>
-                        <input type="text" class="form-control" id="editUserName" readonly>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user me-1"></i> <?php echo $lang['user_name']; ?>
+                                </label>
+                                <input type="text" class="form-control" id="editUserName" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-envelope me-1"></i> <?php echo $lang['user_email']; ?>
+                                </label>
+                                <input type="email" class="form-control" id="editUserEmail" readonly>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-envelope me-1"></i> <?php echo $lang['email']; ?>
-                        </label>
-                        <input type="email" class="form-control" id="editUserEmail" readonly>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editUserRole" class="form-label">
+                                    <i class="fas fa-user-shield me-1"></i> <?php echo $lang['user_role']; ?>
+                                </label>
+                                <select class="form-select" id="editUserRole" name="new_role" required>
+                                    <?php if ($_SESSION['current_role'] === 'superadmin'): ?>
+                                        <option value="superadmin">SuperAdmin</option>
+                                    <?php endif; ?>
+                                    <option value="admin">Admin</option>
+                                    <option value="moderator">Moderador</option>
+                                    <option value="user">Usuario</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-calendar me-1"></i> Fecha de Ingreso
+                                </label>
+                                <input type="text" class="form-control" id="editUserJoinedDate" readonly>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="editUserRole" class="form-label">
-                            <i class="fas fa-user-shield me-1"></i> <?php echo $lang['role']; ?>
-                        </label>
-                        <select class="form-select" id="editUserRole" name="new_role" required>
-                            <?php if ($_SESSION['current_role'] === 'superadmin'): ?>
-                                <option value="superadmin"><?php echo $lang['superadmin']; ?></option>
-                            <?php endif; ?>
-                            <option value="admin"><?php echo $lang['admin']; ?></option>
-                            <option value="moderator"><?php echo $lang['moderator']; ?></option>
-                            <option value="user"><?php echo $lang['user']; ?></option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-calendar me-1"></i> <?php echo $lang['joined_date']; ?>
-                        </label>
-                        <input type="text" class="form-control" id="editUserJoinedDate" readonly>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editUserUnit" class="form-label">
+                                    <i class="fas fa-building me-1"></i> <?php echo $lang['working_unit']; ?>
+                                </label>
+                                <select class="form-select" id="editUserUnit" name="unit_id">
+                                    <option value=""><?php echo $lang['select_unit']; ?></option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editUserBusiness" class="form-label">
+                                    <i class="fas fa-briefcase me-1"></i> <?php echo $lang['working_business']; ?>
+                                </label>
+                                <select class="form-select" id="editUserBusiness" name="business_id">
+                                    <option value=""><?php echo $lang['select_business']; ?></option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="alert alert-warning">

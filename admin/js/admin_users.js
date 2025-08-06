@@ -77,25 +77,33 @@ function showInviteModal() {
  */
 async function loadUsers() {
     try {
+        const companyId = window.currentCompanyId || getCompanyId();
+        if (!companyId) {
+            showAlert('error', 'Error', 'No se ha seleccionado una empresa');
+            return;
+        }
+
         const response = await fetch('controller.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: 'action=get_users_by_company'
+            body: `action=load_users&company_id=${companyId}`
         });
 
         const data = await response.json();
         
         if (data.success) {
-            currentUsers = data.users;
-            displayUsers(data.users);
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = data.html;
         } else {
-            showAlert('error', 'Error', data.message);
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error al cargar usuarios: ' + (data.message || 'Error desconocido') + '</td></tr>';
         }
     } catch (error) {
-        showAlert('error', 'Error', 'Error al cargar usuarios');
         console.error('Error:', error);
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Error de conexión</td></tr>';
     }
 }
 
@@ -262,15 +270,23 @@ async function sendInvitation() {
  * Editar usuario
  */
 function editUser(userId) {
-    const user = currentUsers.find(u => u.id == userId);
-    if (!user) return;
+    // Buscar los datos del usuario en la tabla
+    const row = document.querySelector(`[onclick="editUser(${userId})"]`).closest('tr');
+    if (!row) return;
+    
+    const cells = row.querySelectorAll('td');
+    const userName = cells[0].textContent.trim();
+    const userEmail = cells[1].textContent.trim();
+    const userRole = cells[2].querySelector('.badge').textContent.toLowerCase().trim();
+    
+    document.getElementById('editUserId').value = userId;
+    document.getElementById('editUserName').value = userName;
+    document.getElementById('editUserEmail').value = userEmail;
+    document.getElementById('editUserRole').value = userRole;
 
-    document.getElementById('editUserId').value = user.id;
-    document.getElementById('editUserName').value = user.name;
-    document.getElementById('editUserEmail').value = user.email;
-    document.getElementById('editUserRole').value = user.role;
-    document.getElementById('editUserJoinedDate').value = formatDate(user.joined_date);
-
+    // Cargar unidades y negocios para los selects
+    loadUnits();
+    
     const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
     modal.show();
 }
@@ -280,9 +296,12 @@ function editUser(userId) {
  */
 async function updateUserRole() {
     const formData = new FormData();
-    formData.append('action', 'update_user_role');
+    formData.append('action', 'update_role');
     formData.append('user_id', document.getElementById('editUserId').value);
     formData.append('new_role', document.getElementById('editUserRole').value);
+    formData.append('unit_id', document.getElementById('editUserUnit').value);
+    formData.append('business_id', document.getElementById('editUserBusiness').value);
+    formData.append('company_id', window.currentCompanyId);
 
     try {
         const response = await fetch('controller.php', {
@@ -293,14 +312,14 @@ async function updateUserRole() {
         const data = await response.json();
         
         if (data.success) {
-            showAlert('success', 'Éxito', data.message);
+            showAlert('success', 'Éxito', data.message || 'Usuario actualizado correctamente');
             bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
             loadUsers();
         } else {
             showAlert('error', 'Error', data.message);
         }
     } catch (error) {
-        showAlert('error', 'Error', 'Error al actualizar rol');
+        showAlert('error', 'Error', 'Error de conexión');
         console.error('Error:', error);
     }
 }
@@ -650,4 +669,59 @@ function showAlert(type, title, message) {
         text: message,
         confirmButtonColor: '#667eea'
     });
+}
+
+/**
+ * Activar/desactivar acceso de usuario
+ */
+function toggleAccess(userId, enable) {
+    const action = enable ? 'habilitar' : 'deshabilitar';
+    const title = enable ? 'Habilitar Acceso' : 'Deshabilitar Acceso';
+    const text = `¿Estás seguro de que quieres ${action} el acceso de este usuario?`;
+    
+    Swal.fire({
+        title: title,
+        text: text,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: enable ? '#28a745' : '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: enable ? 'Sí, habilitar' : 'Sí, deshabilitar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData();
+            formData.append('action', 'toggle_access');
+            formData.append('user_id', userId);
+            formData.append('enable', enable);
+            formData.append('company_id', getCompanyId());
+            
+            fetch('controller.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', 'Éxito', data.message);
+                    loadUsers(); // Recargar la lista
+                } else {
+                    showAlert('error', 'Error', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'Error', 'Error de conexión');
+            });
+        }
+    });
+}
+
+/**
+ * Obtener ID de empresa actual
+ */
+function getCompanyId() {
+    // Obtener del URL o de una variable global
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('company_id') || window.currentCompanyId || null;
 }

@@ -50,7 +50,7 @@ $availableModules = [
         'description' => 'Gestión de gastos e ingresos del negocio',
         'icon' => 'fas fa-money-bill-wave',
         'color' => 'success',
-        'url' => 'gastos/',
+        'url' => 'expenses/',
         'active' => true
     ],
     [

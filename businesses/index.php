@@ -1,5 +1,6 @@
 <?php
 require_once '../config.php';
+require_once '../includes/plan_restrictions.php';
 
 // Verificar autenticación
 if (!checkAuth()) {
@@ -143,6 +144,13 @@ try {
                         <?php endif; ?>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Widget de Uso del Plan -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <?php echo displayPlanUsage($unitData['company_id']); ?>
             </div>
         </div>
 

@@ -1,0 +1,4 @@
+[02-Aug-2025 09:19:43 America/Mexico_City] Error obteniendo límites de plan: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'company_id' in 'where clause'
+[02-Aug-2025 09:26:03 America/Mexico_City] Error obteniendo límites de plan: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'company_id' in 'where clause'
+[02-Aug-2025 09:26:08 America/Mexico_City] Error obteniendo límites de plan: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'company_id' in 'where clause'
+[02-Aug-2025 09:26:12 America/Mexico_City] Error obteniendo límites de plan: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'company_id' in 'where clause'

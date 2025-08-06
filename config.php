@@ -4,6 +4,11 @@
  * Indice SaaS - Sistema modular para múltiples empresas
  */
 
+// Iniciar sesión si no está iniciada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Leer configuración desde .env
 function loadEnv($file = __DIR__ . '/.env') {
     if (!file_exists($file)) return;
@@ -21,22 +26,57 @@ define('BASE_URL', '/');
 // Configuración de zona horaria
 date_default_timezone_set('America/Mexico_City');
 
-// Iniciar sesión si no está iniciada
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// Idiomas disponibles
+define('AVAILABLE_LANGUAGES', ['es' => 'Español', 'en' => 'English']);
+define('DEFAULT_LANGUAGE', 'es');
+
+// Función para obtener idioma actual
+function getCurrentLanguage() {
+    // Prioridad: URL > Sesión > Usuario BD > Navegador > Default
+    if (isset($_GET['lang']) && array_key_exists($_GET['lang'], AVAILABLE_LANGUAGES)) {
+        $_SESSION['language'] = $_GET['lang'];
+        return $_GET['lang'];
+    }
+    
+    if (isset($_SESSION['language']) && array_key_exists($_SESSION['language'], AVAILABLE_LANGUAGES)) {
+        return $_SESSION['language'];
+    }
+    
+    // TODO: Obtener idioma preferido del usuario desde BD
+    
+    // Detectar idioma del navegador
+    if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+        $browserLang = substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2);
+        if (array_key_exists($browserLang, AVAILABLE_LANGUAGES)) {
+            return $browserLang;
+        }
+    }
+    
+    return DEFAULT_LANGUAGE;
 }
 
 // Función para cargar idioma
-function loadLanguage($lang = 'es') {
+function loadLanguage($lang = null) {
+    if ($lang === null) {
+        $lang = getCurrentLanguage();
+    }
+    
     $langFile = BASE_PATH . "/lang/{$lang}.php";
     if (file_exists($langFile)) {
         return include $langFile;
     }
+    
+    // Fallback al idioma por defecto
+    $defaultLangFile = BASE_PATH . "/lang/" . DEFAULT_LANGUAGE . ".php";
+    if (file_exists($defaultLangFile)) {
+        return include $defaultLangFile;
+    }
+    
     return [];
 }
 
-// Cargar idioma español por defecto
-$lang = loadLanguage('es');
+// Cargar idioma actual
+$lang = loadLanguage();
 
 // Función para verificar autenticación
 function checkAuth() {
@@ -145,4 +185,3 @@ function getDB() {
 if (file_exists(__DIR__ . '/admin/email_config.php')) {
     require_once __DIR__ . '/admin/email_config.php';
 }
-?>

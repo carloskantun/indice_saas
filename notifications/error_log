@@ -1,0 +1,5 @@
+[01-Aug-2025 20:44:30 America/Mexico_City] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'c.nombre' in 'field list' in /home1/corazon/app.indiceapp.com/notifications/index.php:45
+Stack trace:
+#0 /home1/corazon/app.indiceapp.com/notifications/index.php(45): PDO->prepare('\n    SELECT DIS...')
+#1 {main}
+  thrown in /home1/corazon/app.indiceapp.com/notifications/index.php on line 45
