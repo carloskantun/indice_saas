@@ -33,14 +33,18 @@ $(document).ready(function() {
         // 3. Bind eventos básicos
         bindBasicEvents();
         
-    // 4. Inicializar funciones básicas
-    initializeColumnVisibility();
-    initializeQuickFilters();
-    initializeSortableColumns();
-    initializeMultipleSelection();
-    calcularTotales();
-    
-    console.log('✅ Módulo de gastos inicializado correctamente');    } catch (error) {
+        // 4. Configurar eventos específicos para modales
+        setupModalEvents();
+        
+        // 5. Inicializar funciones básicas
+        initializeColumnVisibility();
+        initializeQuickFilters();
+        initializeSortableColumns();
+        initializeMultipleSelection();
+        calcularTotales();
+        
+        console.log('✅ Módulo de gastos inicializado correctamente');
+    } catch (error) {
         console.error('❌ Error inicializando gastos:', error);
     }
 });
@@ -48,91 +52,165 @@ $(document).ready(function() {
 function bindBasicEvents() {
     console.log('🔗 Binding eventos básicos...');
     
-    // Ver detalles del gasto
-    $(document).on('click', '.btn-view', function() {
-        const id = $(this).data('id');
-        console.log('�️ Ver gasto ID:', id);
-        viewExpense(id);
-    });
-    
-    // Generar PDF
-    $(document).on('click', '.btn-pdf', function() {
-        const id = $(this).data('id');
-        console.log('📄 Generar PDF del gasto ID:', id);
-        generatePDF(id);
-    });
-    
-    // Editar gasto
-    $(document).on('click', '.btn-edit', function() {
-        const id = $(this).data('id');
-        console.log('✏️ Editar gasto ID:', id);
-        editExpense(id);
-    });
-    
-    // Eliminar gasto
-    $(document).on('click', '.btn-delete', function() {
-        const id = $(this).data('id');
-        console.log('�️ Eliminar gasto ID:', id);
-        deleteExpense(id);
-    });
-    
-    // Registrar pago
-    $(document).on('click', '.btn-pay', function() {
-        const id = $(this).data('id');
-        console.log('� Registrar pago gasto ID:', id);
-        showPaymentModal(id);
-    });
-    
-    // Nuevo gasto
-    $('.btn-nuevo-gasto').on('click', function() {
-        console.log('➕ Nuevo gasto');
-        $('#expenseModal').modal('show');
-    });
-    
-    // Nueva orden
-    $('.btn-nueva-orden').on('click', function() {
-        console.log('➕ Nueva orden');
-        $('#orderModal').modal('show');
-    });
-    
-    // Nuevo proveedor
-    $('.btn-nuevo-proveedor').on('click', function() {
-        console.log('➕ Nuevo proveedor');
-        $('#providerModal').modal('show');
-    });
-    
-    // Ver KPIs
-    $('.btn-kpis').on('click', function() {
-        console.log('📊 Ver KPIs');
-        showKPIsModal();
-    });
-    
-    // Forms submit
-    $('#expenseForm').on('submit', function(e) {
+    // Formulario de gastos
+    $(document).off('submit', '#expenseForm').on('submit', '#expenseForm', function(e) {
         e.preventDefault();
-        console.log('� Guardando gasto...');
-        saveExpense();
+        console.log('📝 Formulario de gastos enviado');
+        handleExpenseSubmit.call(this, e);
     });
     
-    $('#orderForm').on('submit', function(e) {
+    // Formulario de órdenes de compra
+    $(document).off('submit', '#orderForm').on('submit', '#orderForm', function(e) {
         e.preventDefault();
-        console.log('💾 Guardando orden...');
-        saveOrder();
+        console.log('📦 Formulario de orden de compra enviado');
+        handleOrderSubmit.call(this, e);
     });
     
-    $('#providerForm').on('submit', function(e) {
+    // Formulario de proveedores
+    $(document).off('submit', '#providerForm').on('submit', '#providerForm', function(e) {
         e.preventDefault();
-        console.log('💾 Guardando proveedor...');
-        saveProvider();
+        console.log('🏢 Formulario de proveedor enviado');
+        handleProviderSubmit.call(this, e);
     });
     
-    $('#paymentForm').on('submit', function(e) {
+    // Formulario de pagos (modal-formulario-general)
+    $(document).off('submit', '#paymentForm').on('submit', '#paymentForm', function(e) {
         e.preventDefault();
-        console.log('💾 Registrando pago...');
-        savePayment();
+        console.log('💰 Formulario de pago enviado');
+        handlePaymentSubmit.call(this, e);
     });
     
-    console.log('✅ Eventos básicos vinculados');
+    // === BOTONES DE ACCIÓN EN TABLA ===
+    
+    // Botón Ver detalles
+    $(document).off('click', '.btn-view').on('click', '.btn-view', function() {
+        const expenseId = $(this).data('id');
+        console.log('👁️ Ver detalles del gasto:', expenseId);
+        viewExpense(expenseId);
+    });
+    
+    // Botón Registrar pago (modal-formulario-general)
+    $(document).off('click', '.btn-pay').on('click', '.btn-pay', function() {
+        const expenseId = $(this).data('id');
+        console.log('💰 Registrar pago para gasto:', expenseId);
+        openPaymentModal(expenseId);
+    });
+    
+    // Botón Editar
+    $(document).off('click', '.btn-edit').on('click', '.btn-edit', function() {
+        const expenseId = $(this).data('id');
+        console.log('✏️ Editar gasto:', expenseId);
+        editExpense(expenseId);
+    });
+    
+    // Botón Eliminar
+    $(document).off('click', '.btn-delete').on('click', '.btn-delete', function() {
+        const expenseId = $(this).data('id');
+        console.log('🗑️ Eliminar gasto:', expenseId);
+        deleteExpense(expenseId);
+    });
+    
+    // === BOTONES DE EXPORTACIÓN ===
+    
+    // Botón Exportar PDF
+    $(document).off('click', '#btn-exportar-pdf').on('click', '#btn-exportar-pdf', function() {
+        console.log('📄 Exportando a PDF...');
+        exportToPDF();
+    });
+    
+    // Botón Exportar CSV
+    $(document).off('click', '#btn-exportar-csv').on('click', '#btn-exportar-csv', function() {
+        console.log('📊 Exportando a CSV...');
+        exportToCSV();
+    });
+    
+    console.log('✅ Eventos básicos vinculados correctamente');
+}
+
+function setupModalEvents() {
+    console.log('🎯 Configurando eventos de modales...');
+    
+    // Evitar que el modal se cierre al interactuar con Select2
+    $(document).on('click', '.select2-container', function(e) {
+        e.stopPropagation();
+        console.log('🛡️ Click en Select2 container - evento detenido');
+    });
+    
+    $(document).on('click', '.select2-dropdown', function(e) {
+        e.stopPropagation();
+        console.log('🛡️ Click en Select2 dropdown - evento detenido');
+    });
+    
+    // Eventos principales de modales
+    $('.modal').on('show.bs.modal', function() {
+        const modalId = this.id;
+        console.log('🎯 Abriendo modal:', modalId);
+    });
+    
+    $('.modal').on('shown.bs.modal', function() {
+        const modalId = this.id;
+        const $modal = $(this);
+        console.log('✨ Modal abierto:', modalId);
+        
+        // Configurar todos los selects en este modal
+        $modal.find('select').each(function() {
+            const $select = $(this);
+            const selectName = $select.attr('name') || 'unknown';
+            
+            console.log(`🔄 Configurando select: ${selectName}`);
+            
+            // Si ya tiene Select2, destruirlo
+            if ($select.hasClass('select2-hidden-accessible')) {
+                $select.select2('destroy');
+                console.log(`   └─ Select2 destruido para ${selectName}`);
+            }
+            
+            // Inicializar Select2 con configuración para modales
+            try {
+                $select.select2({
+                    language: 'es',
+                    placeholder: 'Seleccionar...',
+                    allowClear: true,
+                    width: '100%',
+                    dropdownParent: $modal,
+                    escapeMarkup: function(markup) {
+                        return markup;
+                    }
+                });
+                
+                console.log(`   └─ ✅ Select2 inicializado para ${selectName}`);
+                
+                // Contar opciones
+                const options = $select.find('option');
+                const validOptions = $select.find('option[value!=""]');
+                console.log(`   └─ 📊 ${options.length} opciones, ${validOptions.length} válidas`);
+                
+            } catch (error) {
+                console.error(`   └─ ❌ Error inicializando ${selectName}:`, error);
+            }
+        });
+        
+        console.log('✅ Modal configurado completamente:', modalId);
+    });
+    
+    $('.modal').on('hidden.bs.modal', function() {
+        const modalId = this.id;
+        console.log('🚪 Modal cerrado:', modalId);
+    });
+    
+    // Funcionalidad específica para órdenes recurrentes
+    $(document).on('change', '#order_expense_type', function() {
+        const camposRecurrente = document.getElementById('campos_recurrente');
+        if (camposRecurrente) {
+            if (this.value === 'Recurrente') {
+                camposRecurrente.style.display = 'block';
+                console.log('📅 Campos recurrentes mostrados');
+            } else {
+                camposRecurrente.style.display = 'none';
+                console.log('📅 Campos recurrentes ocultos');
+            }
+        }
+    });
 }
 
 function initializeColumnVisibility() {
@@ -310,6 +388,123 @@ function handleProviderSubmit(e) {
     });
 }
 
+// ============================================
+// FUNCIONES DEL MODAL-FORMULARIO-GENERAL (PAGOS)
+// ============================================
+
+function openPaymentModal(expenseId) {
+    console.log('💰 Abriendo modal de pago para gasto:', expenseId);
+    
+    // Limpiar formulario anterior
+    $('#paymentForm')[0].reset();
+    $('#payment_expense_id').val(expenseId);
+    
+    // Establecer fecha actual por defecto
+    const today = new Date().toISOString().split('T')[0];
+    $('#payment_date').val(today);
+    
+    // Cargar datos del gasto para mostrar en el modal
+    $.ajax({
+        url: 'controller.php',
+        type: 'GET',
+        data: { action: 'get_expense', expense_id: expenseId }
+    })
+    .done(function(response) {
+        console.log('📊 Respuesta cruda:', response);
+        
+        let result;
+        try {
+            result = typeof response === 'string' ? JSON.parse(response) : response;
+        } catch (e) {
+            console.error('❌ Error parseando respuesta:', e);
+            showAlert('Error en formato de respuesta del servidor', 'danger');
+            return;
+        }
+        
+        if (result.success && result.data) {
+            const expense = result.data;
+            console.log('📊 Datos del gasto:', expense);
+            
+            // Calcular el saldo pendiente
+            const totalAmount = parseFloat(expense.amount || 0);
+            const paidAmount = parseFloat(expense.paid_amount || 0);
+            const pending = totalAmount - paidAmount;
+            
+            // Actualizar información en el modal
+            $('#pendingAmountSpan').text('$' + new Intl.NumberFormat('es-MX').format(pending));
+            
+            // Establecer el monto máximo que se puede pagar
+            $('#payment_amount').attr('max', pending);
+            $('#payment_amount').attr('placeholder', `Máximo: $${new Intl.NumberFormat('es-MX').format(pending)}`);
+            
+            console.log('✅ Modal de pago configurado - Pendiente: $' + pending);
+        } else {
+            console.error('❌ Error cargando datos del gasto:', response.error);
+            showAlert('Error cargando datos del gasto', 'danger');
+            return;
+        }
+    })
+    .fail(function(xhr) {
+        console.error('❌ Error en solicitud de datos del gasto:', xhr);
+        showAlert('Error del servidor al cargar datos', 'danger');
+        return;
+    });
+    
+    // Abrir el modal
+    $('#paymentModal').modal('show');
+}
+
+function handlePaymentSubmit(e) {
+    console.log('💰 Procesando pago/abono...');
+    
+    const formData = new FormData(this);
+    formData.append('action', 'register_payment');
+    
+    // Validaciones básicas
+    const amount = parseFloat(formData.get('amount'));
+    const maxAmount = parseFloat($('#payment_amount').attr('max'));
+    
+    if (!amount || amount <= 0) {
+        showAlert('El monto debe ser mayor a 0', 'warning');
+        return;
+    }
+    
+    if (amount > maxAmount) {
+        showAlert(`El monto no puede exceder $${new Intl.NumberFormat('es-MX').format(maxAmount)}`, 'warning');
+        return;
+    }
+    
+    $.ajax({
+        url: 'controller.php',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        beforeSend: function() {
+            $('.btn-submit').prop('disabled', true).text('Registrando...');
+        }
+    })
+    .done(function(response) {
+        console.log('✅ Pago registrado:', response);
+        const result = JSON.parse(response);
+        if (result.success) {
+            showAlert(result.message, 'success');
+            $('#paymentModal').modal('hide');
+            location.reload(); // Recargar para mostrar el pago actualizado
+        } else {
+            showAlert(result.error || 'Error al registrar pago', 'danger');
+        }
+    })
+    .fail(function(xhr) {
+        console.error('❌ Error registrando pago:', xhr.responseText);
+        const error = xhr.responseJSON ? xhr.responseJSON.error : 'Error del servidor';
+        showAlert(error, 'danger');
+    })
+    .always(function() {
+        $('.btn-submit').prop('disabled', false).text('Registrar Pago');
+    });
+}
+
 function updateField(expenseId, field, value) {
     console.log('🔄 Actualizando campo:', { expenseId, field, value });
     
@@ -340,7 +535,298 @@ function updateField(expenseId, field, value) {
 
 function editExpense(expenseId) {
     console.log('✏️ Editando gasto:', expenseId);
-    showAlert('Función de edición en desarrollo', 'info');
+    
+    // Cargar datos del gasto
+    $.ajax({
+        url: 'controller.php',
+        method: 'GET',
+        data: { action: 'get_expense', expense_id: expenseId },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const expense = response.expense;
+                
+                // Llenar el modal de edición
+                $('#edit_expense_id').val(expense.id);
+                $('#edit_provider_id').val(expense.provider_id).trigger('change');
+                $('#edit_amount').val(expense.amount);
+                $('#edit_payment_date').val(expense.payment_date);
+                $('#edit_expense_type').val(expense.expense_type);
+                $('#edit_purchase_type').val(expense.purchase_type);
+                $('#edit_payment_method').val(expense.payment_method);
+                $('#edit_bank_account').val(expense.bank_account);
+                $('#edit_origin').val(expense.origin);
+                $('#edit_concept').val(expense.concept);
+                $('#edit_order_folio').val(expense.order_folio);
+                
+                // Cargar proveedores en el modal de edición
+                loadProvidersInModal('#edit_provider_id');
+                
+                // Mostrar modal
+                $('#editExpenseModal').modal('show');
+            } else {
+                showAlert('Error al cargar datos del gasto: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error AJAX:', xhr);
+            showAlert('Error del servidor al cargar gasto', 'danger');
+        }
+    });
+}
+
+function viewExpense(expenseId) {
+    console.log('👁️ Viendo gasto:', expenseId);
+    
+    // Cargar datos del gasto para vista detallada
+    $.ajax({
+        url: 'controller.php',
+        method: 'GET',
+        data: { action: 'get_expense', expense_id: expenseId }
+    })
+    .done(function(response) {
+        console.log('📊 Respuesta ver gasto:', response);
+        
+        let result;
+        try {
+            result = typeof response === 'string' ? JSON.parse(response) : response;
+        } catch (e) {
+            console.error('❌ Error parseando respuesta ver gasto:', e);
+            showAlert('Error en formato de respuesta del servidor', 'danger');
+            return;
+        }
+        
+        if (result.success && result.data) {
+            const expense = result.data;
+            
+            // Crear contenido del modal
+            const modalContent = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Información Básica</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Folio:</strong></td><td>${expense.folio || 'N/A'}</td></tr>
+                            <tr><td><strong>Proveedor:</strong></td><td>${expense.provider_name || 'Sin proveedor'}</td></tr>
+                            <tr><td><strong>Monto:</strong></td><td>$${parseFloat(expense.amount || 0).toLocaleString('es-MX')}</td></tr>
+                            <tr><td><strong>Fecha de Pago:</strong></td><td>${expense.payment_date}</td></tr>
+                            <tr><td><strong>Status:</strong></td><td><span class="badge bg-${expense.status === 'Pagado' ? 'success' : 'warning'}">${expense.status}</span></td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Detalles</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Tipo:</strong></td><td>${expense.expense_type}</td></tr>
+                            <tr><td><strong>Tipo Compra:</strong></td><td>${expense.purchase_type || 'N/A'}</td></tr>
+                            <tr><td><strong>Método Pago:</strong></td><td>${expense.payment_method}</td></tr>
+                            <tr><td><strong>Cuenta:</strong></td><td>${expense.bank_account || 'N/A'}</td></tr>
+                            <tr><td><strong>Origen:</strong></td><td>${expense.origin}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Concepto</h6>
+                        <p class="border rounded p-2">${expense.concept}</p>
+                    </div>
+                </div>
+                ${expense.order_folio ? `
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <h6>Folio de Orden</h6>
+                        <p><strong>${expense.order_folio}</strong></p>
+                    </div>
+                </div>` : ''}
+            `;
+            
+            // Insertar contenido en el modal
+            $('#viewExpenseModal .modal-body').html(modalContent);
+            $('#viewExpenseModal').modal('show');
+            
+        } else {
+            console.error('❌ Error:', result.error || 'Respuesta sin datos');
+            showAlert('Error al cargar datos del gasto: ' + (result.error || 'Datos no encontrados'), 'danger');
+        }
+    })
+    .fail(function(xhr) {
+        console.error('❌ Error AJAX ver gasto:', xhr);
+        showAlert('Error del servidor al cargar gasto', 'danger');
+    });
+}
+
+function saveExpense() {
+    console.log('💾 Guardando gasto...');
+    
+    const formData = new FormData(document.getElementById('expenseForm'));
+    formData.append('action', 'create_expense');
+    
+    $.ajax({
+        url: 'controller.php',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showAlert('Gasto creado exitosamente', 'success');
+                $('#expenseModal').modal('hide');
+                location.reload();
+            } else {
+                showAlert('Error al crear gasto: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error AJAX:', xhr);
+            showAlert('Error del servidor al crear gasto', 'danger');
+        }
+    });
+}
+
+function saveOrder() {
+    console.log('💾 Guardando orden...');
+    
+    const formData = new FormData(document.getElementById('orderForm'));
+    formData.append('action', 'create_order');
+    
+    $.ajax({
+        url: 'controller.php',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const ordersCount = response.orders ? response.orders.length : 1;
+                showAlert(response.message, 'success');
+                $('#orderModal').modal('hide');
+                location.reload();
+            } else {
+                showAlert('Error al crear orden: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error AJAX:', xhr);
+            showAlert('Error del servidor al crear orden', 'danger');
+        }
+    });
+}
+
+function saveProvider() {
+    console.log('💾 Guardando proveedor...');
+    
+    const formData = new FormData(document.getElementById('providerForm'));
+    formData.append('action', 'create_provider');
+    
+    $.ajax({
+        url: 'controller.php',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showAlert('Proveedor creado exitosamente', 'success');
+                $('#providerModal').modal('hide');
+                
+                // Recargar proveedores en los selects
+                loadProvidersInModal('#provider_id');
+                loadProvidersInModal('#edit_provider_id');
+                loadProvidersInModal('#order_provider_id');
+                
+                location.reload();
+            } else {
+                showAlert('Error al crear proveedor: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error AJAX:', xhr);
+            showAlert('Error del servidor al crear proveedor', 'danger');
+        }
+    });
+}
+
+function showPaymentModal(expenseId) {
+    console.log('💰 Mostrando modal de pago para gasto:', expenseId);
+    
+    // Cargar datos del gasto para el pago
+    $.ajax({
+        url: 'controller.php',
+        method: 'GET',
+        data: { action: 'get_expense', expense_id: expenseId },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const expense = response.expense;
+                const pendingAmount = parseFloat(expense.amount) - parseFloat(expense.paid_amount || 0);
+                
+                $('#payment_expense_id').val(expense.id);
+                $('#pendingAmountSpan').text('$' + pendingAmount.toLocaleString('es-MX'));
+                $('#payment_amount').attr('max', pendingAmount);
+                $('#payment_date').val(new Date().toISOString().split('T')[0]);
+                
+                $('#paymentModal').modal('show');
+            } else {
+                showAlert('Error al cargar datos del gasto: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error AJAX:', xhr);
+            showAlert('Error del servidor al cargar gasto', 'danger');
+        }
+    });
+}
+
+function savePayment() {
+    console.log('💾 Guardando pago...');
+    
+    const formData = new FormData(document.getElementById('paymentForm'));
+    formData.append('action', 'register_payment');
+    
+    $.ajax({
+        url: 'controller.php',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showAlert('Pago registrado exitosamente', 'success');
+                $('#paymentModal').modal('hide');
+                location.reload();
+            } else {
+                showAlert('Error al registrar pago: ' + response.error, 'danger');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error AJAX:', xhr);
+            showAlert('Error del servidor al registrar pago', 'danger');
+        }
+    });
+}
+
+function loadProvidersInModal(selector) {
+    console.log('📋 Los proveedores ya están en el HTML del modal, no es necesario cargar via AJAX');
+    console.log('🔧 Selector:', selector);
+    
+    // Los proveedores ya vienen en el HTML desde modals.php
+    // Solo necesitamos reinicializar Select2 (esto se hace en el evento shown.bs.modal)
+    const select = $(selector);
+    const options = select.find('option');
+    const validOptions = select.find('option[value!=""]');
+    
+    console.log(`📊 ${selector}: ${options.length} opciones total, ${validOptions.length} proveedores válidos`);
+    
+    if (validOptions.length === 0) {
+        console.warn(`⚠️ ${selector} - No tiene proveedores válidos en el HTML`);
+    } else {
+        console.log('✅ Proveedores disponibles en', selector);
+        validOptions.each(function() {
+            console.log(`   - ${$(this).val()}: ${$(this).text()}`);
+        });
+    }
 }
 
 function deleteExpense(expenseId) {
@@ -847,4 +1333,112 @@ function renderKPIs(kpis) {
     modalBody.innerHTML = html;
 }
 
-console.log('✅ Expenses.js - Carga completada');
+    
+    console.log('🏁 Diagnóstico completado');
+}
+
+// ============================================
+// FUNCIONES DE EXPORTACIÓN
+// ============================================
+
+function exportToPDF() {
+    console.log('📄 Iniciando exportación a PDF...');
+    
+    // Recoger filtros actuales
+    const filters = {
+        fecha_inicio: $('#filtro_fecha_inicio').val(),
+        fecha_fin: $('#filtro_fecha_fin').val(),
+        proveedor: $('#filtro_proveedor').val(),
+        tipo: $('#filtro_tipo').val(),
+        estado: $('#filtro_estado').val(),
+        metodo_pago: $('#filtro_metodo_pago').val()
+    };
+    
+    // Crear formulario para envío
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'export-pdf.php';
+    form.target = '_blank';
+    
+    // Agregar filtros como campos ocultos
+    Object.keys(filters).forEach(key => {
+        if (filters[key]) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = filters[key];
+            form.appendChild(input);
+        }
+    });
+    
+    // Enviar formulario
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    
+    console.log('✅ Solicitud de PDF enviada');
+}
+
+function exportToCSV() {
+    console.log('📊 Iniciando exportación a CSV...');
+    
+    // Recoger filtros actuales
+    const filters = {
+        fecha_inicio: $('#filtro_fecha_inicio').val(),
+        fecha_fin: $('#filtro_fecha_fin').val(),
+        proveedor: $('#filtro_proveedor').val(),
+        tipo: $('#filtro_tipo').val(),
+        estado: $('#filtro_estado').val(),
+        metodo_pago: $('#filtro_metodo_pago').val()
+    };
+    
+    // Crear URL con parámetros
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+        if (filters[key]) {
+            params.append(key, filters[key]);
+        }
+    });
+    
+    // Abrir en nueva ventana
+    const url = `export-csv.php?${params.toString()}`;
+    window.open(url, '_blank');
+    
+    console.log('✅ Solicitud de CSV enviada');
+}
+
+console.log('✅ Expenses.js - Carga completada');// Función de diagnóstico para verificar que los eventos estén vinculados
+window.diagnosticarEventos = function() {
+    console.log('🔍 DIAGNÓSTICO DE EVENTOS:');
+    
+    // Verificar que los formularios existen
+    const forms = ['#expenseForm', '#orderForm', '#providerForm'];
+    forms.forEach(formId => {
+        const form = $(formId);
+        if (form.length > 0) {
+            console.log(`✅ Formulario ${formId} encontrado`);
+            
+            // Verificar eventos vinculados
+            const events = $._data(form[0], 'events');
+            if (events && events.submit) {
+                console.log(`✅ Evento submit vinculado a ${formId}`);
+            } else {
+                console.log(`❌ Evento submit NO vinculado a ${formId}`);
+            }
+        } else {
+            console.log(`❌ Formulario ${formId} NO encontrado`);
+        }
+    });
+    
+    // Verificar funciones críticas
+    const functions = ['handleExpenseSubmit', 'handleOrderSubmit', 'handleProviderSubmit'];
+    functions.forEach(funcName => {
+        if (typeof window[funcName] === 'function') {
+            console.log(`✅ Función ${funcName} disponible`);
+        } else {
+            console.log(`❌ Función ${funcName} NO disponible`);
+        }
+    });
+    
+    console.log('🏁 Diagnóstico completado');
+};

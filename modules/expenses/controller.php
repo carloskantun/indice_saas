@@ -80,6 +80,10 @@ try {
             addPayment();
             break;
             
+        case 'register_payment':
+            addPayment();
+            break;
+            
         case 'get_expense':
             getExpense();
             break;
@@ -430,6 +434,8 @@ function getExpense() {
     $payments = $stmt->fetchAll();
     
     echo json_encode([
+        'success' => true,
+        'data' => $expense,
         'expense' => $expense,
         'payments' => $payments,
         'pending_amount' => $expense['amount'] - $expense['paid_amount']

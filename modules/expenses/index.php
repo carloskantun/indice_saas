@@ -169,6 +169,28 @@ $units = $stmt->fetchAll();
         .sticky-header th { position: sticky; top: 0; background: white; z-index: 10; }
         .editable-campo { width: 100%; min-width: 100px; }
         
+        /* Fix para Select2 en modales de Bootstrap */
+        .select2-container {
+            z-index: 10000 !important;
+        }
+        
+        .select2-dropdown {
+            z-index: 10001 !important;
+        }
+        
+        .modal .select2-container {
+            z-index: 10005 !important;
+        }
+        
+        .modal .select2-dropdown {
+            z-index: 10006 !important;
+        }
+        
+        /* Evitar que el modal se cierre al hacer click en Select2 */
+        .select2-container--open .select2-dropdown {
+            z-index: 10007 !important;
+        }
+        
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             .table-responsive {
@@ -573,7 +595,64 @@ $units = $stmt->fetchAll();
 </div>
 
 <!-- Incluir modales -->
-<?php include 'modals.php'; ?>
+<?php 
+// Asegurar que las variables estén disponibles para modals.php
+$company_id_for_modals = $_SESSION['company_id'] ?? null;
+$business_id_for_modals = $_SESSION['business_id'] ?? null;
+
+// Debug: Verificar variables antes de incluir modals
+error_log("INDEX.PHP - Before including modals.php: Company ID = " . ($company_id_for_modals ?? 'NULL'));
+
+include 'modals.php'; 
+?>
+
+<!-- Estilos adicionales para drag & drop -->
+<style>
+.drag-over {
+    border: 2px dashed #007bff !important;
+    background-color: rgba(0, 123, 255, 0.1) !important;
+}
+
+.modal-content {
+    transition: all 0.3s ease;
+}
+
+#file-preview .border {
+    background-color: #f8f9fa;
+}
+
+.btn-pdf {
+    position: relative;
+}
+
+.btn-pdf:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Estilos para comprobantes */
+.comprobantes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.comprobante-item {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    background: #f8f9fa;
+}
+
+.comprobante-item img {
+    max-width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+</style>
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -581,7 +660,7 @@ $units = $stmt->fetchAll();
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/expenses-debug.js"></script>
+<script src="js/expenses-simple.js"></script>
 
 </body>
 </html>

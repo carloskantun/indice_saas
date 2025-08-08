@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Events</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Test de Eventos</h1>
+    
+    <form id="expenseForm">
+        <input type="text" name="test" value="test">
+        <button type="submit">Submit Expense</button>
+    </form>
+    
+    <form id="orderForm">
+        <input type="text" name="test" value="test">
+        <button type="submit">Submit Order</button>
+    </form>
+    
+    <form id="providerForm">
+        <input type="text" name="test" value="test">
+        <button type="submit">Submit Provider</button>
+    </form>
+    
+    <script>
+        // Simulamos las funciones del archivo principal
+        function handleExpenseSubmit(e) {
+            console.log('✅ handleExpenseSubmit llamado correctamente', this);
+            alert('Expense form submitted!');
+        }
+        
+        function handleOrderSubmit(e) {
+            console.log('✅ handleOrderSubmit llamado correctamente', this);
+            alert('Order form submitted!');
+        }
+        
+        function handleProviderSubmit(e) {
+            console.log('✅ handleProviderSubmit llamado correctamente', this);
+            alert('Provider form submitted!');
+        }
+        
+        // Copiamos exactamente el código de bindBasicEvents
+        function bindBasicEvents() {
+            console.log('🔗 Binding eventos básicos...');
+            
+            // Formulario de gastos
+            $(document).off('submit', '#expenseForm').on('submit', '#expenseForm', function(e) {
+                e.preventDefault();
+                console.log('📝 Formulario de gastos enviado');
+                handleExpenseSubmit.call(this, e);
+            });
+            
+            // Formulario de órdenes de compra
+            $(document).off('submit', '#orderForm').on('submit', '#orderForm', function(e) {
+                e.preventDefault();
+                console.log('📦 Formulario de orden de compra enviado');
+                handleOrderSubmit.call(this, e);
+            });
+            
+            // Formulario de proveedores
+            $(document).off('submit', '#providerForm').on('submit', '#providerForm', function(e) {
+                e.preventDefault();
+                console.log('🏢 Formulario de proveedor enviado');
+                handleProviderSubmit.call(this, e);
+            });
+            
+            console.log('✅ Eventos básicos vinculados correctamente');
+        }
+        
+        $(document).ready(function() {
+            console.log('Documento listo, vinculando eventos...');
+            bindBasicEvents();
+            
+            // Función de diagnóstico
+            window.diagnosticarEventos = function() {
+                console.log('🔍 DIAGNÓSTICO DE EVENTOS:');
+                
+                const forms = ['#expenseForm', '#orderForm', '#providerForm'];
+                forms.forEach(formId => {
+                    const form = $(formId);
+                    if (form.length > 0) {
+                        console.log(`✅ Formulario ${formId} encontrado`);
+                        
+                        const events = $._data(form[0], 'events');
+                        if (events && events.submit) {
+                            console.log(`✅ Evento submit vinculado a ${formId}`);
+                        } else {
+                            console.log(`❌ Evento submit NO vinculado a ${formId}`);
+                        }
+                    } else {
+                        console.log(`❌ Formulario ${formId} NO encontrado`);
+                    }
+                });
+            };
+        });
+    </script>
+</body>
+</html>

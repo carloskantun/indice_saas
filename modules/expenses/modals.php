@@ -1,13 +1,37 @@
 <!-- MODALES PARA EL MÓDULO DE GASTOS -->
 
 <?php
+// Debug: Verificar variables de sesión
+error_log("MODALS DEBUG - Company ID: " . ($_SESSION['company_id'] ?? 'NULL'));
+error_log("MODALS DEBUG - Business ID: " . ($_SESSION['business_id'] ?? 'NULL'));
+
 // Obtener proveedores para los modales
 $db = getDB();
-$company_id = $_SESSION['company_id'] ?? null;
-$providers_sql = "SELECT id, name FROM providers WHERE company_id = ? AND status = 'active' ORDER BY name";
-$stmt = $db->prepare($providers_sql);
-$stmt->execute([$company_id]);
-$modal_providers = $stmt->fetchAll();
+
+// Usar las variables explícitas si están disponibles, sino usar sesión
+$company_id = $company_id_for_modals ?? $_SESSION['company_id'] ?? null;
+
+// Debug adicional
+error_log("MODALS DEBUG - Using company_id: " . ($company_id ?? 'NULL'));
+error_log("MODALS DEBUG - company_id_for_modals: " . ($company_id_for_modals ?? 'NULL'));
+error_log("MODALS DEBUG - SESSION company_id: " . ($_SESSION['company_id'] ?? 'NULL'));
+
+if (!$company_id) {
+    error_log("MODALS ERROR - No company_id found in session or variables");
+    $modal_providers = [];
+} else {
+    $providers_sql = "SELECT id, name FROM providers WHERE company_id = ? AND status = 'active' ORDER BY name";
+    $stmt = $db->prepare($providers_sql);
+    $stmt->execute([$company_id]);
+    $modal_providers = $stmt->fetchAll();
+    
+    error_log("MODALS DEBUG - Found " . count($modal_providers) . " providers for company " . $company_id);
+    
+    // Debug adicional: mostrar proveedores encontrados
+    foreach ($modal_providers as $p) {
+        error_log("MODALS DEBUG - Provider: ID={$p['id']}, Name={$p['name']}");
+    }
+}
 ?>
 
 <!-- Modal Nuevo/Editar Gasto -->
@@ -28,12 +52,23 @@ $modal_providers = $stmt->fetchAll();
                                 <label for="provider_id" class="form-label">Proveedor</label>
                                 <select class="form-select select2" id="provider_id" name="provider_id">
                                     <option value="">Sin proveedor</option>
+                                    <?php if (empty($modal_providers)): ?>
+                                    <option value="" disabled style="color: red;">❌ No hay proveedores (Company ID: <?php echo $company_id; ?>)</option>
+                                    <?php else: ?>
                                     <?php foreach ($modal_providers as $provider): ?>
                                     <option value="<?php echo $provider['id']; ?>">
                                         <?php echo htmlspecialchars($provider['name']); ?>
                                     </option>
                                     <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
+                                <div class="form-text">
+                                    <?php if (empty($modal_providers)): ?>
+                                    <span style="color: red;">⚠️ No se encontraron proveedores activos</span>
+                                    <?php else: ?>
+                                    <span style="color: green;">✅ <?php echo count($modal_providers); ?> proveedores disponibles</span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -118,6 +153,16 @@ $modal_providers = $stmt->fetchAll();
                         <label for="order_folio" class="form-label">Folio de Orden</label>
                         <input type="text" class="form-control" id="order_folio" name="order_folio" placeholder="Folio de orden de compra (opcional)">
                     </div>
+                    
+                    <!-- CAMPO DE ARCHIVOS - FACTURAS/TICKETS -->
+                    <div class="mb-3">
+                        <label for="expense_files" class="form-label">Facturas/Tickets <span class="text-muted">(Opcional)</span></label>
+                        <input type="file" class="form-control" id="expense_files" name="archivos[]" accept="image/jpeg,image/png,image/jpg,application/pdf" multiple>
+                        <div class="form-text">
+                            <i class="fas fa-upload me-1"></i>
+                            Suba facturas, tickets o comprobantes del gasto
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -146,7 +191,23 @@ $modal_providers = $stmt->fetchAll();
                                 <label for="edit_provider_id" class="form-label">Proveedor</label>
                                 <select class="form-select select2" id="edit_provider_id" name="provider_id">
                                     <option value="">Sin proveedor</option>
+                                    <?php if (empty($modal_providers)): ?>
+                                    <option value="" disabled style="color: red;">❌ No hay proveedores (Company ID: <?php echo $company_id; ?>)</option>
+                                    <?php else: ?>
+                                    <?php foreach ($modal_providers as $provider): ?>
+                                    <option value="<?php echo $provider['id']; ?>">
+                                        <?php echo htmlspecialchars($provider['name']); ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
+                                <div class="form-text">
+                                    <?php if (empty($modal_providers)): ?>
+                                    <span style="color: red;">⚠️ No se encontraron proveedores activos</span>
+                                    <?php else: ?>
+                                    <span style="color: green;">✅ <?php echo count($modal_providers); ?> proveedores disponibles</span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -276,6 +337,18 @@ $modal_providers = $stmt->fetchAll();
                         <label for="payment_comment" class="form-label">Comentario</label>
                         <textarea class="form-control" id="payment_comment" name="comment" rows="3" placeholder="Observaciones del pago (opcional)"></textarea>
                     </div>
+                    
+                    <!-- CAMPO DE ARCHIVOS - COMPROBANTES -->
+                    <div class="mb-3">
+                        <label for="payment_files" class="form-label">Comprobantes <span class="text-muted">(Opcional)</span></label>
+                        <input type="file" class="form-control" id="payment_files" name="comprobantes[]" accept="image/jpeg,image/png,image/jpg,application/pdf" multiple>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Puede subir múltiples archivos (imágenes JPG, PNG o documentos PDF). 
+                            También puede arrastrar y soltar archivos aquí.
+                        </div>
+                        <div id="file-preview" class="mt-2"></div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -371,12 +444,23 @@ $modal_providers = $stmt->fetchAll();
                                 <label for="order_provider_id" class="form-label">Proveedor</label>
                                 <select class="form-select select2" id="order_provider_id" name="provider_id">
                                     <option value="">Seleccionar proveedor</option>
+                                    <?php if (empty($modal_providers)): ?>
+                                    <option value="" disabled style="color: red;">❌ No hay proveedores (Company ID: <?php echo $company_id; ?>)</option>
+                                    <?php else: ?>
                                     <?php foreach ($modal_providers as $provider): ?>
                                     <option value="<?php echo $provider['id']; ?>">
                                         <?php echo htmlspecialchars($provider['name']); ?>
                                     </option>
                                     <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </select>
+                                <div class="form-text">
+                                    <?php if (empty($modal_providers)): ?>
+                                    <span style="color: red;">⚠️ No se encontraron proveedores activos</span>
+                                    <?php else: ?>
+                                    <span style="color: green;">✅ <?php echo count($modal_providers); ?> proveedores disponibles</span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -533,27 +617,3 @@ $modal_providers = $stmt->fetchAll();
         </div>
     </div>
 </div>
-
-<script>
-// Funcionalidad para órdenes recurrentes
-document.addEventListener('DOMContentLoaded', function() {
-    const tipoOrdenSelect = document.getElementById('order_expense_type');
-    const camposRecurrente = document.getElementById('campos_recurrente');
-    
-    if (tipoOrdenSelect && camposRecurrente) {
-        function toggleCamposRecurrente() {
-            if (tipoOrdenSelect.value === 'Recurrente') {
-                camposRecurrente.style.display = 'block';
-            } else {
-                camposRecurrente.style.display = 'none';
-            }
-        }
-        
-        // Inicializar al cargar
-        toggleCamposRecurrente();
-        
-        // Escuchar cambios
-        tipoOrdenSelect.addEventListener('change', toggleCamposRecurrente);
-    }
-});
-</script>
