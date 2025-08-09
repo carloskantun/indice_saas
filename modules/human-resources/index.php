@@ -26,16 +26,16 @@ function hasPermission($permission) {
     $permission_map = [
         'admin' => [
             'employees.view', 'employees.create', 'employees.edit', 'employees.delete',
-            'employees.export', 'employees.kpis',
+            'employees.export', 'employees.kpis', 'employees.bonuses',
             'departments.view', 'departments.create', 'departments.edit', 'departments.delete',
             'positions.view', 'positions.create', 'positions.edit', 'positions.delete'
         ],
         'moderator' => [
-            'employees.view', 'employees.create', 'employees.edit',
+            'employees.view', 'employees.create', 'employees.edit', 'employees.bonuses',
             'departments.view', 'positions.view'
         ],
         'user' => [
-            'employees.view', 'departments.view', 'positions.view'
+            'employees.view', 'departments.view', 'positions.view', 'employees.bonuses'
         ]
     ];
     
@@ -234,6 +234,21 @@ $positions = $stmt->fetchAll();
 <body>
 
 <div class="container-fluid py-4">
+    <?php 
+    // Breadcrumbs inteligentes
+    require_once '../../components/smart_breadcrumbs.php';
+    echo renderSmartBreadcrumbs('Recursos Humanos', [
+        [
+            'name' => 'Módulos', 
+            'url' => '../', 
+            'icon' => 'fas fa-th-large'
+        ]
+    ]);
+    
+    // Navegación rápida para usuarios básicos
+    echo renderQuickNavigation();
+    ?>
+    
     <!-- Contenedor de alertas -->
     <div id="alertContainer"></div>
     
@@ -288,6 +303,11 @@ $positions = $stmt->fetchAll();
                     <i class="fas fa-chart-pie me-2"></i>KPIs
                 </button>
                 <?php endif; ?>
+                <?php if (hasPermission('employees.bonuses')): ?>
+                <button type="button" class="btn btn-secondary" id="btnBonuses" data-bs-toggle="modal" data-bs-target="#bonusesModal">
+                    <i class="fas fa-gift me-2"></i>Bonos
+                </button>
+                <?php endif; ?>
                 
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -298,6 +318,23 @@ $positions = $stmt->fetchAll();
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="name" checked> Nombre</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="department" checked> Departamento</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="position" checked> Posición</label></li>
+<!-- Modal Bonos -->
+<div class="modal fade" id="bonusesModal" tabindex="-1" aria-labelledby="bonusesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bonusesModalLabel"><i class="fas fa-gift me-2"></i>Bonos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Aquí podrás gestionar los bonos de los empleados.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="hire_date" checked> Fecha Ingreso</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="employment_type" checked> Tipo Empleo</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="salary" checked> Salario</label></li>

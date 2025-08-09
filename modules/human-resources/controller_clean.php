@@ -96,7 +96,7 @@ try {
             createEmployeeWithInvitation();
             break;
         case 'sync_salary':
-            syncSalaryAPI();
+            syncSalaryToExpenses();
             break;
         default:
             http_response_code(400);
@@ -542,7 +542,7 @@ function createEmployeeWithInvitation() {
     }
     
     // Incluir sistema de invitaciones
-    require_once 'includes/invitation_functions.php';
+    require_once 'includes/invitation_system.php';
     
     $first_name = trim($_POST['first_name'] ?? '');
     $last_name = trim($_POST['last_name'] ?? '');
@@ -719,7 +719,7 @@ function generateExpenseFolio() {
 /**
  * Función standalone para sync salary (API endpoint)
  */
-function syncSalaryAPI() {
+function syncSalaryToExpenses() {
     global $db, $company_id, $business_id, $unit_id, $user_id;
     
     if (!hasPermission('employees.edit')) {
@@ -762,7 +762,7 @@ function syncSalaryAPI() {
         }
         
     } catch (Exception $e) {
-        error_log("Error in syncSalaryAPI: " . $e->getMessage());
+        error_log("Error in syncSalaryToExpenses API: " . $e->getMessage());
         echo json_encode(['error' => 'Error interno del servidor']);
     }
 }

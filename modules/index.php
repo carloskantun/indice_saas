@@ -37,66 +37,119 @@ try {
     $_SESSION['unit_id'] = $businessData['unit_id'];
     $_SESSION['company_id'] = $businessData['company_id'];
     $_SESSION['current_role'] = $businessData['role'];
+    $_SESSION['business_name'] = $businessData['business_name'];
+    $_SESSION['unit_name'] = $businessData['unit_name'];
+    $_SESSION['company_name'] = $businessData['company_name'];
     
 } catch (Exception $e) {
     redirect('companies/');
 }
 
-// Módulos disponibles del sistema
-$availableModules = [
+// Obtener módulos desde la base de datos
+try {
+    $stmt = $db->prepare("
+        SELECT id, name, slug, description, url, icon, color, status
+        FROM modules 
+        WHERE status = 'active' 
+        AND slug IN ('expenses', 'human-resources', 'mantenimiento', 'inventario', 'ventas', 'servicio_cliente')
+        ORDER BY name ASC
+    ");
+    $stmt->execute();
+    $modulesList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Convertir a formato compatible con el template actual
+    $availableModules = [];
+    foreach ($modulesList as $module) {
+        // Verificar si el usuario tiene permisos para este módulo
+        if (hasModuleAccess($module['slug'], $businessData['role'])) {
+            // Limpiar URL para evitar duplicación de /modules/
+            $cleanUrl = $module['url'];
+            if (strpos($cleanUrl, '/modules/') === 0) {
+                $cleanUrl = substr($cleanUrl, 9); // Remover '/modules/' del inicio
+            }
+            $cleanUrl = ltrim($cleanUrl, '/');
+            
+            $availableModules[] = [
+                'id' => $module['slug'],
+                'name' => $module['name'],
+                'description' => $module['description'],
+                'icon' => $module['icon'] ?: 'fas fa-puzzle-piece',
+                'color' => getBootstrapColor($module['color']),
+                'url' => $cleanUrl,
+                'active' => true
+            ];
+        }
+    }
+    
+} catch (Exception $e) {
+    // Log del error para debug
+    error_log("ERROR en modules/index.php - Consulta BD falló: " . $e->getMessage());
+    error_log("Stack trace: " . $e->getTraceAsString());
+    
+    // Fallback a módulos hardcodeados si hay error con la BD
+    $availableModules = [
+        [
+            'id' => 'expenses',
+            'name' => 'Gastos',
+            'description' => 'Gestión de gastos e ingresos del negocio',
+            'icon' => 'fas fa-money-bill-wave',
+            'color' => 'success',
+            'url' => 'expenses/',
+            'active' => true
+        ]
+    ];
+}
+
+/**
+ * Verificar si el usuario tiene acceso a un módulo
+ */
+function hasModuleAccess($moduleSlug, $userRole) {
+    // Superadmin y root tienen acceso a todo
+    if (in_array($userRole, ['root', 'superadmin', 'superadministrador'])) {
+        return true;
+    }
+    
+    // Configuración de acceso por módulo y rol
+    $moduleAccess = [
+        'expenses' => ['admin', 'moderator', 'user'],
+        'human-resources' => ['admin', 'moderator'], // Admin y moderator tienen acceso completo
+        'mantenimiento' => ['admin', 'moderator', 'user'],
+        'inventario' => ['admin', 'moderator', 'user'],
+        'ventas' => ['admin', 'moderator', 'user'],
+        'servicio_cliente' => ['admin', 'moderator', 'user']
+    ];
+    
+    $allowedRoles = $moduleAccess[$moduleSlug] ?? ['admin'];
+    return in_array($userRole, $allowedRoles);
+}
+
+/**
+ * Convertir color hex a clase Bootstrap
+ */
+function getBootstrapColor($hexColor) {
+    $colorMap = [
+        '#3498db' => 'primary',
+        '#2ecc71' => 'success', 
+        '#e74c3c' => 'danger',
+        '#f39c12' => 'warning',
+        '#9b59b6' => 'info',
+        '#34495e' => 'secondary',
+        '#1abc9c' => 'info'
+    ];
+    
+    return $colorMap[$hexColor] ?? 'primary';
+}
+
+// Módulos hardcodeados como fallback (mantener por compatibilidad)
+$fallbackModules = [
     [
         'id' => 'gastos',
-        'name' => $lang['gastos'],
+        'name' => $lang['gastos'] ?? 'Gastos',
         'description' => 'Gestión de gastos e ingresos del negocio',
         'icon' => 'fas fa-money-bill-wave',
         'color' => 'success',
         'url' => 'expenses/',
         'active' => true
-    ],
-    [
-        'id' => 'mantenimiento',
-        'name' => $lang['mantenimiento'],
-        'description' => 'Control de mantenimientos y servicios',
-        'icon' => 'fas fa-wrench',
-        'color' => 'warning',
-        'url' => 'mantenimiento/',
-        'active' => false
-    ],
-    [
-        'id' => 'servicio_cliente',
-        'name' => $lang['servicio_cliente'],
-        'description' => 'Gestión de atención al cliente',
-        'icon' => 'fas fa-headset',
-        'color' => 'info',
-        'url' => 'servicio_cliente/',
-        'active' => false
-    ],
-    [
-        'id' => 'inventario',
-        'name' => 'Inventario',
-        'description' => 'Control de stock y productos',
-        'icon' => 'fas fa-boxes',
-        'color' => 'primary',
-        'url' => 'inventario/',
-        'active' => false
-    ],
-    [
-        'id' => 'ventas',
-        'name' => 'Ventas',
-        'description' => 'Gestión de ventas y facturación',
-        'icon' => 'fas fa-shopping-cart',
-        'color' => 'danger',
-        'url' => 'ventas/',
-        'active' => false
-    ],
-    [
-        'id' => 'empleados',
-        'name' => 'Empleados',
-        'description' => 'Gestión de personal y nómina',
-        'icon' => 'fas fa-users',
-        'color' => 'secondary',
-        'url' => 'empleados/',
-        'active' => false
     ]
 ];
 ?>

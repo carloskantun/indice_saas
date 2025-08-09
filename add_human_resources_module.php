@@ -51,8 +51,8 @@ try {
     } else {
         echo "Creando nuevo módulo...\n";
         
-        $sql = "INSERT INTO modules (name, slug, description, url, icon, color, status, created_at) 
-                VALUES ('Recursos Humanos', 'human-resources', 'Gestión completa de empleados, departamentos y posiciones', '/modules/human-resources/', 'fas fa-users', '#3498db', 'active', NOW())";
+        $sql = "INSERT INTO modules (name, slug, description, url, icon, color, status, order_position, created_at) 
+                VALUES ('Recursos Humanos', 'human-resources', 'Gestión completa de empleados, departamentos, permisos y accesos', '/modules/human-resources/', 'fas fa-users', '#3498db', 'active', 6, NOW())";
         
         $stmt = $db->prepare($sql);
         $result = $stmt->execute();
@@ -69,12 +69,17 @@ try {
     
     // Permisos para el módulo
     $permissions = [
+        // Gestión de empleados
         'employees.view' => 'Ver empleados',
         'employees.create' => 'Crear empleados',
         'employees.edit' => 'Editar empleados',
         'employees.delete' => 'Eliminar empleados',
         'employees.export' => 'Exportar datos de empleados',
         'employees.kpis' => 'Ver estadísticas de empleados',
+        'employees.bonuses' => 'Gestionar bonos y gratificaciones',
+        'employees.attendance' => 'Gestionar asistencia y check-in',
+        
+        // Gestión organizacional
         'departments.view' => 'Ver departamentos',
         'departments.create' => 'Crear departamentos',
         'departments.edit' => 'Editar departamentos',
@@ -82,7 +87,18 @@ try {
         'positions.view' => 'Ver posiciones',
         'positions.create' => 'Crear posiciones',
         'positions.edit' => 'Editar posiciones',
-        'positions.delete' => 'Eliminar posiciones'
+        'positions.delete' => 'Eliminar posiciones',
+        
+        // Gestión de usuarios y permisos (Centro de control)
+        'hr.invite_users' => 'Invitar nuevos usuarios al sistema',
+        'hr.manage_permissions' => 'Gestionar permisos de usuarios',
+        'hr.assign_roles' => 'Asignar roles y accesos',
+        'hr.view_user_access' => 'Ver matriz de accesos de usuarios',
+        'hr.manage_user_companies' => 'Gestionar asignación empresa-usuario',
+        
+        // Integración con otros módulos
+        'hr.salary_expenses' => 'Conectar salarios con módulo de gastos',
+        'hr.view_payroll' => 'Ver nómina y cálculos salariales'
     ];
     
     // Verificar estructura de tabla permissions

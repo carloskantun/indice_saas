@@ -2,14 +2,18 @@
 /**
  * Punto de entrada principal del sistema SaaS
  * Indice SaaS - Sistema modular para múltiples empresas
+ * Ahora con navegación inteligente
  */
 
 require_once 'config.php';
 require_once 'components/language_selector.php';
 
-// Si el usuario está autenticado, redirigir a empresas
+// Si el usuario está autenticado, usar navegación inteligente
 if (checkAuth()) {
-    redirect('companies/');
+    require_once 'includes/smart_navigation.php';
+    $smartNav = new SmartNavigation();
+    $optimalRoute = $smartNav->getOptimalRoute();
+    redirect($optimalRoute);
 }
 
 // Si no está autenticado, mostrar página de bienvenida
