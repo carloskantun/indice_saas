@@ -26,16 +26,16 @@ function hasPermission($permission) {
     $permission_map = [
         'admin' => [
             'employees.view', 'employees.create', 'employees.edit', 'employees.delete',
-            'employees.export', 'employees.kpis', 'employees.bonuses',
+            'employees.export', 'employees.kpis', 'employees.bonuses', 'employees.attendance',
             'departments.view', 'departments.create', 'departments.edit', 'departments.delete',
             'positions.view', 'positions.create', 'positions.edit', 'positions.delete'
         ],
         'moderator' => [
-            'employees.view', 'employees.create', 'employees.edit', 'employees.bonuses',
+            'employees.view', 'employees.create', 'employees.edit', 'employees.bonuses', 'employees.attendance',
             'departments.view', 'positions.view'
         ],
         'user' => [
-            'employees.view', 'departments.view', 'positions.view', 'employees.bonuses'
+            'employees.view', 'departments.view', 'positions.view', 'employees.bonuses', 'employees.attendance'
         ]
     ];
     
@@ -229,6 +229,45 @@ $positions = $stmt->fetchAll();
         .col-toggle {
             margin-right: 0.5rem;
         }
+        
+        /* Card header improvements */
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .card-header h5 {
+            color: #495057;
+            font-weight: 600;
+        }
+        
+        .card-header .badge {
+            font-size: 0.8rem;
+        }
+        
+        /* Table header improvements */
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        /* Button group spacing */
+        .d-flex.gap-2 {
+            gap: 0.5rem !important;
+        }
+        
+        @media (max-width: 768px) {
+            .d-flex.gap-2 {
+                gap: 0.25rem !important;
+            }
+            
+            .btn {
+                font-size: 0.85rem;
+                padding: 0.375rem 0.5rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -298,47 +337,28 @@ $positions = $stmt->fetchAll();
                 </button>
                 <?php endif; ?>
                 
-                <?php if (hasPermission('employees.kpis')): ?>
-                <button type="button" class="btn btn-primary" id="btnKPIs" data-bs-toggle="modal" data-bs-target="#kpisModal">
-                    <i class="fas fa-chart-pie me-2"></i>KPIs
-                </button>
-                <?php endif; ?>
                 <?php if (hasPermission('employees.bonuses')): ?>
                 <button type="button" class="btn btn-secondary" id="btnBonuses" data-bs-toggle="modal" data-bs-target="#bonusesModal">
                     <i class="fas fa-gift me-2"></i>Bonos
                 </button>
                 <?php endif; ?>
                 
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-columns me-2"></i>Columnas
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="employee_number" checked> Número</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="name" checked> Nombre</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="department" checked> Departamento</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="position" checked> Posición</label></li>
-<!-- Modal Bonos -->
-<div class="modal fade" id="bonusesModal" tabindex="-1" aria-labelledby="bonusesModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="bonusesModalLabel"><i class="fas fa-gift me-2"></i>Bonos</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <p>Aquí podrás gestionar los bonos de los empleados.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <?php if (hasPermission('employees.attendance')): ?>
+                <button type="button" class="btn btn-primary" id="btnAttendance" data-bs-toggle="modal" data-bs-target="#attendanceModal">
+                    <i class="fas fa-clock me-2"></i>Pase de Lista
+                </button>
+                <?php endif; ?>
+                
+                <?php if (hasPermission('employees.kpis')): ?>
+                <button type="button" class="btn btn-outline-primary" id="btnKPIs" data-bs-toggle="modal" data-bs-target="#kpisModal">
+                    <i class="fas fa-chart-pie me-2"></i>KPIs
+                </button>
+                <?php endif; ?>
             </div>
         </div>
     </div>
-</div>
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="hire_date" checked> Fecha Ingreso</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="employment_type" checked> Tipo Empleo</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="salary" checked> Salario</label></li>
-                        <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="status" checked> Estatus</label></li>
+
+    <!-- Filtros -->
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="email" checked> Email</label></li>
                         <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="phone" checked> Teléfono</label></li>
                     </ul>
@@ -417,6 +437,29 @@ $positions = $stmt->fetchAll();
 
     <!-- Tabla de Empleados -->
     <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-users me-2"></i>Lista de Empleados 
+                <span class="badge bg-primary ms-2"><?php echo count($employees); ?></span>
+            </h5>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-columns me-2"></i>Columnas
+                </button>
+                <ul class="dropdown-menu">
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="employee_number" checked> Número</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="name" checked> Nombre</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="department" checked> Departamento</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="position" checked> Posición</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="hire_date" checked> Fecha Ingreso</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="employment_type" checked> Tipo Empleo</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="salary" checked> Salario</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="status" checked> Estatus</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="email" checked> Email</label></li>
+                    <li><label class="dropdown-item"><input type="checkbox" class="col-toggle" data-col="phone" checked> Teléfono</label></li>
+                </ul>
+            </div>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="employeesTable">

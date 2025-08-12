@@ -148,6 +148,13 @@ function initEventListeners() {
     $('#btnPositions').on('click', function () {
         openPositionModal();
     });
+
+    // Toggle de columnas
+    $('.col-toggle').on('change', function () {
+        const column = $(this).data('col');
+        const isVisible = $(this).is(':checked');
+        toggleColumn(column, isVisible);
+    });
 }
 
 // ============================================================================
@@ -906,3 +913,440 @@ function openEmployeeModal(employeeId = null) {
     // Mostrar modal
     $('#employeeModal').modal('show');
 }
+
+// ============================================================================
+// FUNCIONES PARA PASE DE LISTA / ASISTENCIA
+// ============================================================================
+
+/**
+ * Inicializar modal de asistencia
+ */
+function initAttendanceModal() {
+    // Cargar departamentos en el filtro
+    loadDepartmentsForAttendance();
+
+    // Cargar asistencia del día actual
+    loadAttendanceData();
+
+    // Event listeners
+    $('#loadAttendance').on('click', function () {
+        loadAttendanceData();
+    });
+
+    $('#saveAllAttendance').on('click', function () {
+        saveAllAttendance();
+    });
+
+    $('#exportAttendance').on('click', function () {
+        exportAttendanceData();
+    });
+
+    // Cambios en filtros
+    $('#attendance_date, #attendance_department, #attendance_status').on('change', function () {
+        loadAttendanceData();
+    });
+}
+
+/**
+ * Cargar departamentos para el filtro de asistencia
+ */
+function loadDepartmentsForAttendance() {
+    $.ajax({
+        url: 'controller.php',
+        type: 'GET',
+        data: { action: 'get_departments' },
+        success: function (response) {
+            if (response.success) {
+                const select = $('#attendance_department');
+                select.empty().append('<option value="">Todos los departamentos</option>');
+
+                response.departments.forEach(function (dept) {
+                    select.append(`<option value="${dept.id}">${dept.name}</option>`);
+                });
+            }
+        },
+        error: function () {
+            showAlert('danger', 'Error al cargar departamentos');
+        }
+    });
+}
+
+/**
+ * Cargar datos de asistencia
+ */
+function loadAttendanceData() {
+    const date = $('#attendance_date').val();
+    const departmentId = $('#attendance_department').val();
+    const status = $('#attendance_status').val();
+
+    showLoading('#attendanceTableBody');
+
+    $.ajax({
+        url: 'controller.php',
+        type: 'GET',
+        data: {
+            action: 'get_attendance',
+            date: date,
+            department_id: departmentId,
+            status: status
+        },
+        success: function (response) {
+            hideLoading('#attendanceTableBody');
+
+            if (response.success) {
+                renderAttendanceTable(response.data);
+                updateAttendanceSummary(response.summary);
+            } else {
+                showAlert('danger', response.error || 'Error al cargar asistencia');
+            }
+        },
+        error: function () {
+            hideLoading('#attendanceTableBody');
+            showAlert('danger', 'Error de comunicación con el servidor');
+        }
+    });
+}
+
+/**
+ * Renderizar tabla de asistencia
+ */
+function renderAttendanceTable(employees) {
+    const tbody = $('#attendanceTableBody');
+    tbody.empty();
+
+    if (employees.length === 0) {
+        tbody.append(`
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    <i class="fas fa-info-circle me-2"></i>No hay empleados para mostrar
+                </td>
+            </tr>
+        `);
+        return;
+    }
+
+    employees.forEach(function (employee) {
+        const statusClass = getStatusClass(employee.status);
+        const statusText = getStatusText(employee.status);
+
+        const row = `
+            <tr data-employee-id="${employee.employee_id}">
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="status-indicator bg-${statusClass} me-2"></div>
+                        <div>
+                            <strong>${employee.full_name}</strong><br>
+                            <small class="text-muted">${employee.employee_number}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>${employee.department_name || 'Sin departamento'}</td>
+                <td>${employee.position_title || 'Sin posición'}</td>
+                <td>
+                    <input type="time" class="form-control form-control-sm check-in-time" 
+                           value="${employee.check_in_time || ''}" 
+                           ${employee.status === 'ausente' ? 'disabled' : ''}>
+                </td>
+                <td>
+                    <select class="form-select form-select-sm attendance-status">
+                        <option value="presente" ${employee.status === 'presente' ? 'selected' : ''}>Presente</option>
+                        <option value="ausente" ${employee.status === 'ausente' ? 'selected' : ''}>Ausente</option>
+                        <option value="tardanza" ${employee.status === 'tardanza' ? 'selected' : ''}>Tardanza</option>
+                        <option value="permiso" ${employee.status === 'permiso' ? 'selected' : ''}>Con Permiso</option>
+                        <option value="vacaciones" ${employee.status === 'vacaciones' ? 'selected' : ''}>Vacaciones</option>
+                        <option value="incapacidad" ${employee.status === 'incapacidad' ? 'selected' : ''}>Incapacidad</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm attendance-notes" 
+                           placeholder="Notas opcionales..." 
+                           value="${employee.notes || ''}">
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-success save-attendance" 
+                            data-employee-id="${employee.employee_id}">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+
+    // Event listeners para cambios en tiempo real
+    $('.attendance-status').on('change', function () {
+        const status = $(this).val();
+        const timeInput = $(this).closest('tr').find('.check-in-time');
+
+        if (status === 'ausente') {
+            timeInput.prop('disabled', true).val('');
+        } else {
+            timeInput.prop('disabled', false);
+            if (!timeInput.val() && status === 'presente') {
+                timeInput.val('08:00');
+            } else if (!timeInput.val() && status === 'tardanza') {
+                timeInput.val('09:00');
+            }
+        }
+
+        updateRowStatus($(this).closest('tr'), status);
+    });
+
+    // Event listeners para guardar individual
+    $('.save-attendance').on('click', function () {
+        const employeeId = $(this).data('employee-id');
+        saveIndividualAttendance(employeeId);
+    });
+}
+
+/**
+ * Actualizar resumen de asistencia
+ */
+function updateAttendanceSummary(summary) {
+    $('#present_count').text(summary.presente || 0);
+    $('#absent_count').text(summary.ausente || 0);
+    $('#late_count').text(summary.tardanza || 0);
+    $('#permission_count').text((summary.permiso || 0) + (summary.vacaciones || 0) + (summary.incapacidad || 0));
+}
+
+/**
+ * Obtener clase CSS para el estado
+ */
+function getStatusClass(status) {
+    const classes = {
+        'presente': 'success',
+        'ausente': 'danger',
+        'tardanza': 'warning',
+        'permiso': 'info',
+        'vacaciones': 'primary',
+        'incapacidad': 'secondary'
+    };
+    return classes[status] || 'secondary';
+}
+
+/**
+ * Obtener texto para el estado
+ */
+function getStatusText(status) {
+    const texts = {
+        'presente': 'Presente',
+        'ausente': 'Ausente',
+        'tardanza': 'Tardanza',
+        'permiso': 'Con Permiso',
+        'vacaciones': 'Vacaciones',
+        'incapacidad': 'Incapacidad'
+    };
+    return texts[status] || status;
+}
+
+/**
+ * Actualizar estado visual de la fila
+ */
+function updateRowStatus(row, status) {
+    const indicator = row.find('.status-indicator');
+    const statusClass = getStatusClass(status);
+
+    indicator.removeClass('bg-success bg-danger bg-warning bg-info bg-primary bg-secondary')
+        .addClass(`bg-${statusClass}`);
+}
+
+/**
+ * Guardar asistencia individual
+ */
+function saveIndividualAttendance(employeeId) {
+    const row = $(`tr[data-employee-id="${employeeId}"]`);
+    const data = {
+        action: 'save_attendance',
+        employee_id: employeeId,
+        date: $('#attendance_date').val(),
+        status: row.find('.attendance-status').val(),
+        check_in_time: row.find('.check-in-time').val(),
+        notes: row.find('.attendance-notes').val()
+    };
+
+    $.ajax({
+        url: 'controller.php',
+        type: 'POST',
+        data: data,
+        success: function (response) {
+            if (response.success) {
+                showAlert('success', 'Asistencia guardada correctamente');
+                // Actualizar indicador visual
+                const saveBtn = row.find('.save-attendance');
+                saveBtn.removeClass('btn-success').addClass('btn-outline-success');
+                setTimeout(() => {
+                    saveBtn.removeClass('btn-outline-success').addClass('btn-success');
+                }, 1000);
+            } else {
+                showAlert('danger', response.error || 'Error al guardar asistencia');
+            }
+        },
+        error: function () {
+            showAlert('danger', 'Error de comunicación con el servidor');
+        }
+    });
+}
+
+/**
+ * Guardar toda la asistencia
+ */
+function saveAllAttendance() {
+    const attendanceData = [];
+    const date = $('#attendance_date').val();
+
+    $('#attendanceTableBody tr[data-employee-id]').each(function () {
+        const row = $(this);
+        attendanceData.push({
+            employee_id: row.data('employee-id'),
+            status: row.find('.attendance-status').val(),
+            check_in_time: row.find('.check-in-time').val(),
+            notes: row.find('.attendance-notes').val()
+        });
+    });
+
+    if (attendanceData.length === 0) {
+        showAlert('warning', 'No hay datos de asistencia para guardar');
+        return;
+    }
+
+    showLoading('#saveAllAttendance');
+
+    $.ajax({
+        url: 'controller.php',
+        type: 'POST',
+        data: {
+            action: 'save_all_attendance',
+            date: date,
+            attendance_data: JSON.stringify(attendanceData)
+        },
+        success: function (response) {
+            hideLoading('#saveAllAttendance');
+
+            if (response.success) {
+                showAlert('success', `Asistencia guardada para ${response.saved_count} empleados`);
+                loadAttendanceData(); // Recargar datos
+            } else {
+                showAlert('danger', response.error || 'Error al guardar asistencia');
+            }
+        },
+        error: function () {
+            hideLoading('#saveAllAttendance');
+            showAlert('danger', 'Error de comunicación con el servidor');
+        }
+    });
+}
+
+/**
+ * Exportar datos de asistencia
+ */
+function exportAttendanceData() {
+    const date = $('#attendance_date').val();
+    const departmentId = $('#attendance_department').val();
+
+    const params = new URLSearchParams({
+        action: 'export_attendance',
+        date: date
+    });
+
+    if (departmentId) {
+        params.append('department_id', departmentId);
+    }
+
+    window.open(`controller.php?${params.toString()}`, '_blank');
+}
+
+// Inicializar cuando se abra el modal de asistencia
+$(document).on('shown.bs.modal', '#attendanceModal', function () {
+    initAttendanceModal();
+});
+
+// Agregar estilos CSS para el indicador de estado
+$('<style>')
+    .prop('type', 'text/css')
+    .html(`
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .attendance-notes {
+            min-width: 150px;
+        }
+        
+        .check-in-time {
+            min-width: 100px;
+        }
+        
+        .attendance-status {
+            min-width: 120px;
+        }
+        
+        #attendanceTable td {
+            vertical-align: middle;
+        }
+    `)
+    .appendTo('head');
+
+// ============================================================================
+// FUNCIONES PARA TOGGLE DE COLUMNAS
+// ============================================================================
+
+/**
+ * Alternar visibilidad de columnas
+ */
+function toggleColumn(column, isVisible) {
+    const selector = `[data-col="${column}"]`;
+
+    if (isVisible) {
+        $(selector).show();
+    } else {
+        $(selector).hide();
+    }
+
+    // Guardar preferencias en localStorage
+    saveColumnPreferences();
+}
+
+/**
+ * Guardar preferencias de columnas
+ */
+function saveColumnPreferences() {
+    const preferences = {};
+    $('.col-toggle').each(function () {
+        const column = $(this).data('col');
+        preferences[column] = $(this).is(':checked');
+    });
+
+    localStorage.setItem('hr_column_preferences', JSON.stringify(preferences));
+}
+
+/**
+ * Cargar preferencias de columnas
+ */
+function loadColumnPreferences() {
+    const saved = localStorage.getItem('hr_column_preferences');
+
+    if (saved) {
+        try {
+            const preferences = JSON.parse(saved);
+
+            $('.col-toggle').each(function () {
+                const column = $(this).data('col');
+                if (preferences.hasOwnProperty(column)) {
+                    $(this).prop('checked', preferences[column]);
+                    toggleColumn(column, preferences[column]);
+                }
+            });
+        } catch (e) {
+            console.warn('Error loading column preferences:', e);
+        }
+    }
+}
+
+// Cargar preferencias al inicializar
+$(document).ready(function () {
+    // Pequeño delay para asegurar que todo esté cargado
+    setTimeout(loadColumnPreferences, 100);
+});

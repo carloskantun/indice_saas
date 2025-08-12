@@ -1,0 +1,76 @@
+# Configuración específica para el módulo Procesos y Tareas
+# Prevenir bloqueos de Mod_Security
+
+# Permitir métodos HTTP necesarios
+<Limit GET POST PUT DELETE>
+    Require all granted
+</Limit>
+
+# Configuración para archivos PHP
+<Files "*.php">
+    # Configuración de caracteres
+    php_value default_charset "UTF-8"
+    
+    # Configuración de memoria y tiempo
+    php_value memory_limit "256M"
+    php_value max_execution_time "60"
+    php_value max_input_time "60"
+    
+    # Configuración de uploads
+    php_value post_max_size "50M"
+    php_value upload_max_filesize "50M"
+    php_value max_file_uploads "20"
+</Files>
+
+# Prevenir acceso directo a archivos sensibles
+<Files "*.sql">
+    Require all denied
+</Files>
+
+<Files "config.php">
+    Require all denied
+</Files>
+
+# Configuración de headers de seguridad
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options nosniff
+    Header always set X-Frame-Options SAMEORIGIN
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Configuración específica para AJAX
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Permitir solicitudes AJAX desde el mismo dominio
+    RewriteCond %{HTTP:X-Requested-With} ^XMLHttpRequest$ [NC]
+    RewriteRule ^.*$ - [E=HTTP_X_REQUESTED_WITH:XMLHttpRequest]
+    
+    # Configuración para JSON
+    RewriteCond %{REQUEST_METHOD} ^(GET|POST)$
+    RewriteCond %{HTTP:Content-Type} ^application/json [NC]
+    RewriteRule ^.*$ - [E=CONTENT_TYPE:application/json]
+</IfModule>
+
+# Configuración de tipos MIME
+<IfModule mod_mime.c>
+    AddType application/json .json
+    AddType text/javascript .js
+    AddType text/css .css
+</IfModule>
+
+# Configuración de compresión
+<IfModule mod_deflate.c>
+    <FilesMatch "\.(js|css|json)$">
+        SetOutputFilter DEFLATE
+    </FilesMatch>
+</IfModule>
+
+# Configuración de cache
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/json "access plus 0 seconds"
+</IfModule>

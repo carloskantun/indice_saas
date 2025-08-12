@@ -696,3 +696,114 @@
     }
 }
 </style>
+
+<!-- Modal Pase de Lista / Asistencia -->
+<div class="modal fade" id="attendanceModal" tabindex="-1" aria-labelledby="attendanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="attendanceModalLabel">
+                    <i class="fas fa-clock me-2"></i>Pase de Lista - <?php echo date('d/m/Y'); ?>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Filtros de fecha y departamento -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <label for="attendance_date" class="form-label">Fecha</label>
+                        <input type="date" class="form-control" id="attendance_date" value="<?php echo date('Y-m-d'); ?>">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="attendance_department" class="form-label">Departamento</label>
+                        <select class="form-select" id="attendance_department">
+                            <option value="">Todos los departamentos</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="attendance_status" class="form-label">Estado</label>
+                        <select class="form-select" id="attendance_status">
+                            <option value="">Todos</option>
+                            <option value="presente">Presente</option>
+                            <option value="ausente">Ausente</option>
+                            <option value="tardanza">Tardanza</option>
+                            <option value="permiso">Con Permiso</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="button" class="btn btn-primary" id="loadAttendance">
+                            <i class="fas fa-search me-2"></i>Cargar
+                        </button>
+                        <button type="button" class="btn btn-success ms-2" id="saveAllAttendance">
+                            <i class="fas fa-save me-2"></i>Guardar Todo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resumen de asistencia -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center border-success">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">Presentes</h5>
+                                <h3 class="text-success" id="present_count">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-danger">
+                            <div class="card-body">
+                                <h5 class="card-title text-danger">Ausentes</h5>
+                                <h3 class="text-danger" id="absent_count">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-warning">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning">Tardanzas</h5>
+                                <h3 class="text-warning" id="late_count">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center border-info">
+                            <div class="card-body">
+                                <h5 class="card-title text-info">Con Permiso</h5>
+                                <h3 class="text-info" id="permission_count">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de empleados para marcar asistencia -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="attendanceTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Departamento</th>
+                                <th>Posición</th>
+                                <th>Hora Entrada</th>
+                                <th>Estado</th>
+                                <th>Notas</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody">
+                            <!-- Contenido dinámico -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cerrar
+                </button>
+                <button type="button" class="btn btn-primary" id="exportAttendance">
+                    <i class="fas fa-download me-2"></i>Exportar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

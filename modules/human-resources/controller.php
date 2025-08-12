@@ -98,6 +98,18 @@ try {
         case 'sync_salary':
             syncSalaryAPI();
             break;
+        case 'get_attendance':
+            getAttendance();
+            break;
+        case 'save_attendance':
+            saveAttendance();
+            break;
+        case 'save_all_attendance':
+            saveAllAttendance();
+            break;
+        case 'export_attendance':
+            exportAttendance();
+            break;
         default:
             http_response_code(400);
             echo json_encode(['error' => 'Acción no válida']);
@@ -764,6 +776,305 @@ function syncSalaryAPI() {
     } catch (Exception $e) {
         error_log("Error in syncSalaryAPI: " . $e->getMessage());
         echo json_encode(['error' => 'Error interno del servidor']);
+    }
+}
+
+// ============================================================================
+// FUNCIONES PARA ASISTENCIA / PASE DE LISTA
+// ============================================================================
+
+/**
+ * Obtener datos de asistencia
+ */
+function getAttendance() {
+    global $db, $company_id, $business_id;
+    
+    $date = $_GET['date'] ?? date('Y-m-d');
+    $department_id = $_GET['department_id'] ?? '';
+    $status_filter = $_GET['status'] ?? '';
+    
+    try {
+        // Construir WHERE clause
+        $where_conditions = ["e.company_id = ? AND e.business_id = ? AND e.status = 'Activo'"];
+        $params = [$company_id, $business_id];
+        
+        if ($department_id) {
+            $where_conditions[] = "e.department_id = ?";
+            $params[] = $department_id;
+        }
+        
+        $where_clause = implode(' AND ', $where_conditions);
+        
+        // Consulta principal para empleados con su asistencia
+        $sql = "SELECT 
+                    e.id as employee_id,
+                    e.employee_number,
+                    CONCAT(e.first_name, ' ', e.last_name) AS full_name,
+                    d.name AS department_name,
+                    p.title AS position_title,
+                    COALESCE(a.status, 'ausente') as status,
+                    a.check_in_time,
+                    a.check_out_time,
+                    a.notes,
+                    a.id as attendance_id
+                FROM employees e
+                LEFT JOIN departments d ON e.department_id = d.id
+                LEFT JOIN positions p ON e.position_id = p.id
+                LEFT JOIN employee_attendance a ON e.id = a.employee_id AND a.attendance_date = ?
+                WHERE $where_clause
+                ORDER BY d.name, e.last_name, e.first_name";
+        
+        $params = array_merge([$date], $params);
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Filtrar por estado si se especificó
+        if ($status_filter) {
+            $employees = array_filter($employees, function($emp) use ($status_filter) {
+                return $emp['status'] === $status_filter;
+            });
+            $employees = array_values($employees); // Reindexar
+        }
+        
+        // Calcular resumen
+        $summary = [
+            'presente' => 0,
+            'ausente' => 0,
+            'tardanza' => 0,
+            'permiso' => 0,
+            'vacaciones' => 0,
+            'incapacidad' => 0
+        ];
+        
+        foreach ($employees as $emp) {
+            $summary[$emp['status']]++;
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'data' => $employees,
+            'summary' => $summary,
+            'date' => $date,
+            'total_employees' => count($employees)
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Error getting attendance: " . $e->getMessage());
+        echo json_encode(['error' => 'Error al obtener datos de asistencia']);
+    }
+}
+
+/**
+ * Guardar asistencia individual
+ */
+function saveAttendance() {
+    global $db, $company_id, $business_id, $user_id;
+    
+    $employee_id = $_POST['employee_id'] ?? '';
+    $date = $_POST['date'] ?? '';
+    $status = $_POST['status'] ?? 'ausente';
+    $check_in_time = $_POST['check_in_time'] ?? null;
+    $notes = $_POST['notes'] ?? '';
+    
+    if (!$employee_id || !$date) {
+        echo json_encode(['error' => 'Datos requeridos faltantes']);
+        return;
+    }
+    
+    try {
+        // Verificar que el empleado pertenece a la empresa
+        $stmt = $db->prepare("SELECT id FROM employees WHERE id = ? AND company_id = ? AND business_id = ?");
+        $stmt->execute([$employee_id, $company_id, $business_id]);
+        if (!$stmt->fetch()) {
+            echo json_encode(['error' => 'Empleado no encontrado']);
+            return;
+        }
+        
+        // Limpiar datos
+        if ($status === 'ausente') {
+            $check_in_time = null;
+        }
+        if (empty($check_in_time)) {
+            $check_in_time = null;
+        }
+        if (empty($notes)) {
+            $notes = null;
+        }
+        
+        // Insertar o actualizar asistencia
+        $sql = "INSERT INTO employee_attendance 
+                (employee_id, company_id, business_id, attendance_date, status, check_in_time, notes, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE 
+                status = VALUES(status), 
+                check_in_time = VALUES(check_in_time), 
+                notes = VALUES(notes), 
+                updated_at = CURRENT_TIMESTAMP";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute([
+            $employee_id, $company_id, $business_id, $date, 
+            $status, $check_in_time, $notes, $user_id
+        ]);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Asistencia guardada correctamente'
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Error saving attendance: " . $e->getMessage());
+        echo json_encode(['error' => 'Error al guardar asistencia']);
+    }
+}
+
+/**
+ * Guardar asistencia masiva
+ */
+function saveAllAttendance() {
+    global $db, $company_id, $business_id, $user_id;
+    
+    $date = $_POST['date'] ?? '';
+    $attendance_data = json_decode($_POST['attendance_data'] ?? '[]', true);
+    
+    if (!$date || empty($attendance_data)) {
+        echo json_encode(['error' => 'Datos requeridos faltantes']);
+        return;
+    }
+    
+    try {
+        $db->beginTransaction();
+        
+        $saved_count = 0;
+        
+        foreach ($attendance_data as $record) {
+            $employee_id = $record['employee_id'] ?? '';
+            $status = $record['status'] ?? 'ausente';
+            $check_in_time = $record['check_in_time'] ?? null;
+            $notes = $record['notes'] ?? '';
+            
+            if (!$employee_id) continue;
+            
+            // Verificar empleado
+            $stmt = $db->prepare("SELECT id FROM employees WHERE id = ? AND company_id = ? AND business_id = ?");
+            $stmt->execute([$employee_id, $company_id, $business_id]);
+            if (!$stmt->fetch()) continue;
+            
+            // Limpiar datos
+            if ($status === 'ausente') {
+                $check_in_time = null;
+            }
+            if (empty($check_in_time)) {
+                $check_in_time = null;
+            }
+            if (empty($notes)) {
+                $notes = null;
+            }
+            
+            // Insertar o actualizar
+            $sql = "INSERT INTO employee_attendance 
+                    (employee_id, company_id, business_id, attendance_date, status, check_in_time, notes, created_by) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE 
+                    status = VALUES(status), 
+                    check_in_time = VALUES(check_in_time), 
+                    notes = VALUES(notes), 
+                    updated_at = CURRENT_TIMESTAMP";
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute([
+                $employee_id, $company_id, $business_id, $date, 
+                $status, $check_in_time, $notes, $user_id
+            ]);
+            
+            $saved_count++;
+        }
+        
+        $db->commit();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Asistencia guardada masivamente',
+            'saved_count' => $saved_count
+        ]);
+        
+    } catch (Exception $e) {
+        $db->rollBack();
+        error_log("Error saving all attendance: " . $e->getMessage());
+        echo json_encode(['error' => 'Error al guardar asistencia masiva']);
+    }
+}
+
+/**
+ * Exportar datos de asistencia
+ */
+function exportAttendance() {
+    global $db, $company_id, $business_id;
+    
+    $date = $_GET['date'] ?? date('Y-m-d');
+    $department_id = $_GET['department_id'] ?? '';
+    
+    try {
+        // Construir WHERE clause
+        $where_conditions = ["e.company_id = ? AND e.business_id = ?"];
+        $params = [$company_id, $business_id, $date];
+        
+        if ($department_id) {
+            $where_conditions[] = "e.department_id = ?";
+            $params[] = $department_id;
+        }
+        
+        $where_clause = implode(' AND ', $where_conditions);
+        
+        // Consulta para exportación
+        $sql = "SELECT 
+                    e.employee_number as 'Número Empleado',
+                    CONCAT(e.first_name, ' ', e.last_name) AS 'Nombre Completo',
+                    d.name AS 'Departamento',
+                    p.title AS 'Posición',
+                    COALESCE(a.status, 'ausente') as 'Estado',
+                    a.check_in_time as 'Hora Entrada',
+                    a.check_out_time as 'Hora Salida',
+                    a.notes as 'Notas'
+                FROM employees e
+                LEFT JOIN departments d ON e.department_id = d.id
+                LEFT JOIN positions p ON e.position_id = p.id
+                LEFT JOIN employee_attendance a ON e.id = a.employee_id AND a.attendance_date = ?
+                WHERE $where_clause AND e.status = 'Activo'
+                ORDER BY d.name, e.last_name, e.first_name";
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Configurar headers para descarga CSV
+        $filename = "asistencia_" . $date . ".csv";
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        // Crear CSV
+        $output = fopen('php://output', 'w');
+        
+        // BOM para UTF-8
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Headers
+        if (!empty($data)) {
+            fputcsv($output, array_keys($data[0]));
+            
+            // Datos
+            foreach ($data as $row) {
+                fputcsv($output, $row);
+            }
+        }
+        
+        fclose($output);
+        
+    } catch (Exception $e) {
+        error_log("Error exporting attendance: " . $e->getMessage());
+        echo json_encode(['error' => 'Error al exportar asistencia']);
     }
 }
 

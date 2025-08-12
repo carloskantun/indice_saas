@@ -1,0 +1,684 @@
+/**
+ * ESTILOS CSS MÓDULO PROCESOS Y TAREAS
+ * Estilos específicos para el módulo de procesos y tareas
+ */
+
+/* ============ VARIABLES CSS ============ */
+:root {
+    --pt-primary: #2563eb;
+    --pt-success: #059669;
+    --pt-warning: #d97706;
+    --pt-danger: #dc2626;
+    --pt-info: #0891b2;
+    --pt-secondary: #6b7280;
+
+    /* Estados de prioridad */
+    --pt-priority-low: #10b981;
+    --pt-priority-medium: #f59e0b;
+    --pt-priority-high: #ef4444;
+    --pt-priority-critical: #991b1b;
+
+    /* Estados de tareas */
+    --pt-status-pending: #6b7280;
+    --pt-status-progress: #3b82f6;
+    --pt-status-review: #8b5cf6;
+    --pt-status-completed: #10b981;
+    --pt-status-cancelled: #6b7280;
+
+    /* Estados de vencimiento */
+    --pt-due-normal: #6b7280;
+    --pt-due-soon: #f59e0b;
+    --pt-due-today: #ef4444;
+    --pt-due-overdue: #991b1b;
+}
+
+/* ============ LAYOUT GENERAL ============ */
+.processes-tasks-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    min-height: 100vh;
+}
+
+/* ============ HEADER Y KPIs ============ */
+.kpi-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.kpi-card .card-body {
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card .card-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(30px, -30px);
+}
+
+/* ============ PESTAÑAS PERSONALIZADAS ============ */
+.nav-tabs-custom {
+    border-bottom: 2px solid #e5e7eb;
+    background: white;
+    padding: 0 1rem;
+}
+
+.nav-tabs-custom .nav-link {
+    border: none;
+    border-radius: 0;
+    color: #6b7280;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.nav-tabs-custom .nav-link:hover {
+    background: #f8fafc;
+    color: var(--pt-primary);
+}
+
+.nav-tabs-custom .nav-link.active {
+    background: transparent;
+    color: var(--pt-primary);
+    border-bottom: 3px solid var(--pt-primary);
+}
+
+.nav-tabs-custom .nav-link .badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+}
+
+/* ============ BADGES Y ESTADOS ============ */
+.badge-priority {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.badge-priority.low {
+    background-color: var(--pt-priority-low);
+    color: white;
+}
+
+.badge-priority.medium {
+    background-color: var(--pt-priority-medium);
+    color: white;
+}
+
+.badge-priority.high {
+    background-color: var(--pt-priority-high);
+    color: white;
+}
+
+.badge-priority.critical {
+    background-color: var(--pt-priority-critical);
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+.badge-status {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 20px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.badge-status.pending {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: var(--pt-status-pending);
+    border: 1px solid rgba(107, 114, 128, 0.2);
+}
+
+.badge-status.in_progress {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--pt-status-progress);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.badge-status.review {
+    background-color: rgba(139, 92, 246, 0.1);
+    color: var(--pt-status-review);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.badge-status.completed {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--pt-status-completed);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge-status.cancelled {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: var(--pt-status-cancelled);
+    border: 1px solid rgba(107, 114, 128, 0.2);
+}
+
+/* Estados de proceso */
+.badge-status.draft {
+    background-color: rgba(156, 163, 175, 0.1);
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.2);
+}
+
+.badge-status.active {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.badge-status.paused {
+    background-color: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+/* ============ BARRAS DE PROGRESO ============ */
+.progress-custom {
+    height: 8px;
+    border-radius: 10px;
+    background-color: #f1f5f9;
+    overflow: hidden;
+}
+
+.progress-custom .progress-bar {
+    border-radius: 10px;
+    transition: width 0.6s ease;
+    position: relative;
+}
+
+.progress-custom .progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.2) 75%, transparent 75%, transparent);
+    background-size: 20px 20px;
+    animation: progress-shimmer 1s linear infinite;
+}
+
+@keyframes progress-shimmer {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 20px 20px;
+    }
+}
+
+/* ============ TABLAS MEJORADAS ============ */
+.table-hover tbody tr:hover {
+    background-color: #f8fafc;
+    transform: scale(1.002);
+    transition: all 0.2s ease;
+}
+
+.table th {
+    background-color: #f8fafc;
+    border-top: none;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    padding: 1rem 0.75rem;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 0.875rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Columnas ordenables */
+.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.sortable:hover {
+    background-color: #e5e7eb;
+    color: var(--pt-primary);
+}
+
+.sortable .fa-sort {
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+}
+
+.sortable:hover .fa-sort {
+    opacity: 0.7;
+}
+
+.sortable.sorted .fa-sort {
+    opacity: 1;
+    color: var(--pt-primary);
+}
+
+/* Drag handle para reordenar columnas */
+.drag-handle {
+    cursor: grab;
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+}
+
+.drag-handle:hover {
+    opacity: 0.7;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* ============ FILTROS AVANZADOS ============ */
+.filters-card {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.filters-card .card-body {
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+/* ============ BOTONES DE ACCIÓN ============ */
+.btn-action {
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-action::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+}
+
+.btn-action:hover::before {
+    width: 100px;
+    height: 100px;
+}
+
+.btn-view {
+    background-color: var(--pt-info);
+    color: white;
+}
+
+.btn-view:hover {
+    background-color: #0e7490;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-edit {
+    background-color: var(--pt-warning);
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #c2410c;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-delete {
+    background-color: var(--pt-danger);
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #b91c1c;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-complete {
+    background-color: var(--pt-success);
+    color: white;
+}
+
+.btn-complete:hover {
+    background-color: #047857;
+    color: white;
+    transform: translateY(-1px);
+}
+
+/* ============ ALERTAS DE VENCIMIENTO ============ */
+.due-indicator {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.due-indicator.normal {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: var(--pt-due-normal);
+}
+
+.due-indicator.due-soon {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--pt-due-soon);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.due-indicator.due-today {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--pt-due-today);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    animation: pulse 2s infinite;
+}
+
+.due-indicator.overdue {
+    background-color: var(--pt-due-overdue);
+    color: white;
+    animation: pulse 1.5s infinite;
+}
+
+/* ============ MODALES MEJORADOS ============ */
+.modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    background-color: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+    border-radius: 0 0 12px 12px;
+}
+
+/* ============ CARDS DE PASOS DE PROCESO ============ */
+.process-step {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.process-step:hover {
+    border-color: var(--pt-primary);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+}
+
+.process-step .card-title {
+    color: var(--pt-primary);
+    font-weight: 600;
+}
+
+/* ============ ANIMACIONES ============ */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ============ LOADING STATES ============ */
+.loading-skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-text {
+    height: 1rem;
+    margin: 0.25rem 0;
+}
+
+.skeleton-text.short {
+    width: 60%;
+}
+
+.skeleton-text.medium {
+    width: 80%;
+}
+
+.skeleton-text.long {
+    width: 95%;
+}
+
+/* ============ EMPTY STATES ============ */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h4 {
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) {
+    .nav-tabs-custom {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 0;
+    }
+
+    .nav-tabs-custom .nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .table-responsive {
+        border-radius: 8px;
+    }
+
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .kpi-card .card-body {
+        padding: 1rem;
+    }
+
+    .kpi-card .fs-4 {
+        font-size: 1.5rem !important;
+    }
+
+    /* Ocultar columnas menos importantes en móvil */
+    .table .d-none-mobile {
+        display: none !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-content {
+        border-radius: 8px;
+    }
+
+    .filters-card .row>div {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* ============ UTILIDADES ADICIONALES ============ */
+.text-priority-low {
+    color: var(--pt-priority-low) !important;
+}
+
+.text-priority-medium {
+    color: var(--pt-priority-medium) !important;
+}
+
+.text-priority-high {
+    color: var(--pt-priority-high) !important;
+}
+
+.text-priority-critical {
+    color: var(--pt-priority-critical) !important;
+}
+
+.bg-priority-low {
+    background-color: var(--pt-priority-low) !important;
+}
+
+.bg-priority-medium {
+    background-color: var(--pt-priority-medium) !important;
+}
+
+.bg-priority-high {
+    background-color: var(--pt-priority-high) !important;
+}
+
+.bg-priority-critical {
+    background-color: var(--pt-priority-critical) !important;
+}
+
+.border-priority-low {
+    border-color: var(--pt-priority-low) !important;
+}
+
+.border-priority-medium {
+    border-color: var(--pt-priority-medium) !important;
+}
+
+.border-priority-high {
+    border-color: var(--pt-priority-high) !important;
+}
+
+.border-priority-critical {
+    border-color: var(--pt-priority-critical) !important;
+}
+
+/* ============ DARK MODE SUPPORT ============ */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --pt-bg-primary: #1f2937;
+        --pt-bg-secondary: #374151;
+        --pt-text-primary: #f9fafb;
+        --pt-text-secondary: #d1d5db;
+        --pt-border: #4b5563;
+    }
+
+    .processes-tasks-container {
+        background: var(--pt-bg-primary);
+        color: var(--pt-text-primary);
+    }
+
+    .card {
+        background-color: var(--pt-bg-secondary);
+        border-color: var(--pt-border);
+        color: var(--pt-text-primary);
+    }
+
+    .table {
+        color: var(--pt-text-primary);
+    }
+
+    .table th {
+        background-color: var(--pt-bg-secondary);
+        border-color: var(--pt-border);
+        color: var(--pt-text-secondary);
+    }
+
+    .table td {
+        border-color: var(--pt-border);
+    }
+
+    .modal-content {
+        background-color: var(--pt-bg-secondary);
+        color: var(--pt-text-primary);
+    }
+
+    .modal-header,
+    .modal-footer {
+        background-color: var(--pt-bg-primary);
+        border-color: var(--pt-border);
+    }
+}
